@@ -8,6 +8,14 @@ BASE_DATA_DIR = "../DatosPreparados"
 OUTPUT_DIR = "docs/data"
 AIRPORTS = ["GCLP", "LEBL", "LEMD", "LEMG", "LEPA"]
 
+SUNSHINE_HOURS = {
+    'LEMD': [148, 165, 214, 231, 272, 310, 359, 335, 261, 198, 157, 124],
+    'LEBL': [149, 163, 200, 220, 244, 262, 310, 282, 219, 180, 146, 138],
+    'LEMG': [181, 180, 222, 244, 292, 329, 347, 316, 255, 215, 172, 160],
+    'LEPA': [167, 170, 228, 237, 284, 314, 346, 316, 227, 205, 161, 151],
+    'GCLP': [190, 194, 226, 227, 271, 283, 308, 298, 239, 219, 190, 192]
+}
+
 def get_season(month):
     if month in [12, 1, 2]: return 'DJF (Invierno)'
     elif month in [3, 4, 5]: return 'MAM (Primavera)'
@@ -60,6 +68,7 @@ def process_all_airports():
     final_df['day'] = final_df['dateTime'].dt.day
     final_df['hour'] = final_df['dateTime'].dt.hour
     final_df['season'] = final_df['month'].apply(get_season)
+    final_df['date'] = final_df['dateTime'].dt.date
     
     # Month Name mapping for JS
     month_names = {1:'Enero', 2:'Febrero', 3:'Marzo', 4:'Abril', 5:'Mayo', 6:'Junio', 
@@ -72,8 +81,6 @@ def process_all_airports():
 def generate_json_payloads(df):
     print("Generating JSON payloads for dashboard...")
     
-    # (Traffic dist and Hourly traffic were removed per user request)
-    
     # 3. Wind Rose (Added season filter)
     bins = np.linspace(0, 360, 9)
     labels = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']
@@ -85,12 +92,12 @@ def generate_json_payloads(df):
     wind_rose = df.groupby(['airport', 'season', 'wind_dir_cat', 'wind_speed_cat'], observed=True).size().reset_index(name='count')
     wind_rose.to_json(os.path.join(OUTPUT_DIR, "wind_rose.json"), orient="records")
     
-    # 4. Wind Gusts (Scatter) -> Fix: We ensured knots/maxKnots are numeric. 
+    # 4. Wind Gusts (Scatter)
     gusts_data = df[df['maxKnots'] > 0][['airport', 'knots', 'maxKnots', 'volume_group']].dropna()
     if len(gusts_data) > 10000: gusts_data = gusts_data.sample(10000)
     gusts_data.to_json(os.path.join(OUTPUT_DIR, "wind_gusts.json"), orient="records")
     
-    # 5. Visibility vs Traffic (Replaced boxplot with Low Visibility Incidence)
+    # 5. Visibility vs Traffic
     df['is_low_vis'] = df['visibility'] < 1000
     vis_traffic = df.groupby(['airport', 'volume_group']).agg(
         total=('is_low_vis', 'count'),
@@ -99,53 +106,164 @@ def generate_json_payloads(df):
     vis_traffic['low_vis_pct'] = (vis_traffic['low_vis_count'] / vis_traffic['total']) * 100
     vis_traffic.to_json(os.path.join(OUTPUT_DIR, "visibility_vs_traffic.json"), orient="records")
     
-    # 6. Cloud Amounts (Added day and month filtering)
+    # 6. Cloud Amounts
     cloud_amounts = df.groupby(['airport', 'month_name', 'day', 'amount'], observed=True).size().reset_index(name='count')
     cloud_amounts.to_json(os.path.join(OUTPUT_DIR, "cloud_amounts.json"), orient="records")
     
-    # 7. Monthly Evolution (Now daily evolution with month filter)
+    # 7. Monthly Evolution
     monthly_evo = df.groupby(['airport', 'month_name', 'day'], observed=True).agg({
         'temperature': 'mean',
         'visibility': 'mean'
     }).reset_index()
     monthly_evo.to_json(os.path.join(OUTPUT_DIR, "monthly_evolution.json"), orient="records")
 
-    # 8. Phenomena Distribution (Donut Chart)
+    # 8. Phenomena Distribution
     phenomena_cols = ['phenomenon1', 'phenomenon2', 'phenomenon3']
     all_phen = pd.melt(df, id_vars=['airport'], value_vars=phenomena_cols, value_name='phenomenon')
     all_phen = all_phen.dropna(subset=['phenomenon'])
     phen_dist = all_phen.groupby(['airport', 'phenomenon']).size().reset_index(name='count')
     phen_dist.to_json(os.path.join(OUTPUT_DIR, "phenomena_distribution.json"), orient="records")
 
-    # 9. Correlation Termodinámica -> 3D Scatter (Temp, Dew Pt, Visibility, colored by month)
+    # 9. Correlation Termodinámica -> 3D Scatter
     data_3d = df[['airport', 'temperature', 'dewPoint', 'visibility', 'month_name']].dropna()
     if len(data_3d) > 3000:
-        data_3d = data_3d.sample(3000) # Limit for 3D performance
+        data_3d = data_3d.sample(3000)
     data_3d.to_json(os.path.join(OUTPUT_DIR, "3d_scatter_data.json"), orient="records")
 
-    # 10. Radar Bad Conditions (normalized)
-    df['is_low_vis'] = df['visibility'] < 1000
+    # 10. Radar Bad Conditions
     df['is_high_wind'] = df['knots'] > 15
     df['is_low_ceiling'] = df['height'] < 500
     df['has_rain'] = df['phenomenon1'].str.contains('Lluvia', case=False, na=False) | df['phenomenon1'].str.contains('RA', na=False)
     df['has_fog'] = df['phenomenon1'].str.contains('Niebla', case=False, na=False) | df['phenomenon1'].str.contains('FG', na=False)
-    
-    # Total records per airport to calculate percentage
     radar_cond = df.groupby('airport').agg({
-        'is_low_vis': 'mean',
-        'is_high_wind': 'mean',
-        'is_low_ceiling': 'mean',
-        'has_rain': 'mean',
-        'has_fog': 'mean'
+        'is_low_vis': 'mean', 'is_high_wind': 'mean', 'is_low_ceiling': 'mean',
+        'has_rain': 'mean', 'has_fog': 'mean'
     }).reset_index()
     radar_cond.to_json(os.path.join(OUTPUT_DIR, "radar_bad_conditions.json"), orient="records")
 
-    print("JSON payloads generated successfully.")
+    # --- PHASE 3 NEW JSON PAYLOADS ---
+
+    # 11. Climatological Summary Table (Gráfica 9)
+    climate_summary = df.groupby(['airport', 'month']).agg({
+        'temperature': ['mean', 'max', 'min']
+    }).reset_index()
+    climate_summary.columns = ['airport', 'month', 'mean_temp', 'max_temp', 'min_temp']
+    
+    days_phen = df.groupby(['airport', 'month', 'date']).agg({
+        'phenomenon1': lambda x: ' '.join(x.dropna()),
+        'phenomenon2': lambda x: ' '.join(x.dropna())
+    }).reset_index()
+    days_phen['all_phen'] = days_phen['phenomenon1'] + ' ' + days_phen['phenomenon2']
+    
+    days_phen['has_snow'] = days_phen['all_phen'].str.contains('Nieve|SN', case=False, na=False)
+    days_phen['has_storm'] = days_phen['all_phen'].str.contains('Tormenta|TS', case=False, na=False)
+    days_phen['has_frost'] = days_phen['all_phen'].str.contains('Congela|FZ', case=False, na=False)
+    days_phen['has_fog'] = days_phen['all_phen'].str.contains('Niebla|FG', case=False, na=False)
+    days_phen['has_rain'] = days_phen['all_phen'].str.contains('Lluvia|RA', case=False, na=False)
+
+    monthly_phen = days_phen.groupby(['airport', 'month']).agg({
+        'has_snow': 'sum', 'has_storm': 'sum', 'has_frost': 'sum', 
+        'has_fog': 'sum', 'has_rain': 'sum'
+    }).reset_index()
+
+    climate_merged = pd.merge(climate_summary, monthly_phen, on=['airport', 'month'])
+    
+    def get_sunshine(row):
+        return SUNSHINE_HOURS.get(row['airport'], [0]*12)[int(row['month'])-1]
+    
+    climate_merged['sunshine_hours'] = climate_merged.apply(get_sunshine, axis=1)
+    climate_merged.to_json(os.path.join(OUTPUT_DIR, "climatological_summary.json"), orient="records")
+
+    # 12. Daily Temperature Boxplot (Gráfica 10)
+    daily_temp = df.groupby(['airport', 'date', 'month_name']).agg({
+        'temperature': ['min', 'max', 'mean'],
+        'phenomenon1': lambda x: x.mode()[0] if not x.mode().empty else 'Ninguno'
+    }).reset_index()
+    daily_temp.columns = ['airport', 'date', 'month_name', 'min_temp', 'max_temp', 'mean_temp', 'main_phenomenon']
+    daily_temp['date'] = daily_temp['date'].astype(str)
+    daily_temp.to_json(os.path.join(OUTPUT_DIR, "daily_temperature.json"), orient="records")
+
+    # 13. Wind Direction Freq (Gráfica 11)
+    dir_bins = np.linspace(5, 365, 13)
+    dir_labels = ['01', '04', '07', '10', '13', '16', '19', '22', '25', '28', '31', '34']
+    df['wind_30_deg'] = pd.cut(df['direction'], bins=dir_bins, labels=dir_labels, right=False)
+    df.loc[df['direction'] >= 355, 'wind_30_deg'] = '01'
+    df.loc[(df['direction'] >= 0) & (df['direction'] < 5), 'wind_30_deg'] = '01'
+
+    df['wind_category'] = df['wind_30_deg'].astype(str)
+    df.loc[df['knots'] == 0, 'wind_category'] = 'Calma'
+    wind_freq = df.groupby(['airport', 'wind_category']).size().reset_index(name='count')
+    wind_freq.to_json(os.path.join(OUTPUT_DIR, "wind_direction_freq.json"), orient="records")
+
+    # 14. 3D Cloud Base Freq (Gráfica 12)
+    def cloud_bin(h):
+        if pd.isna(h): return None
+        if h < 1: return '< 30m'
+        elif h < 2: return '< 60m'
+        elif h < 5: return '< 150m'
+        elif h < 10: return '< 300m'
+        else: return '> 300m'
+    
+    df['cloud_base_bin'] = df['height'].apply(cloud_bin)
+    cloud_3d = df.groupby(['airport', 'hour', 'cloud_base_bin']).size().reset_index(name='count')
+    cloud_3d.to_json(os.path.join(OUTPUT_DIR, "cloud_base_3d.json"), orient="records")
+
+    # 15. 3D Visibility Freq (Gráfica 13)
+    def vis_bin(v):
+        if pd.isna(v): return None
+        if v < 800: return '< 800m'
+        elif v < 1500: return '< 1500m'
+        elif v < 3000: return '< 3000m'
+        elif v < 5000: return '< 5000m'
+        else: return '> 5000m'
+        
+    df['vis_bin'] = df['visibility'].apply(vis_bin)
+    vis_3d = df.groupby(['airport', 'hour', 'vis_bin']).size().reset_index(name='count')
+    vis_3d.to_json(os.path.join(OUTPUT_DIR, "visibility_3d.json"), orient="records")
+
+    # 16. RVR Sim Freq (Gráfica 14)
+    def rvr_bin(v):
+        if pd.isna(v): return None
+        if v < 50: return '< 50m'
+        elif v < 200: return '< 200m'
+        elif v < 350: return '< 350m'
+        elif v < 550: return '< 550m'
+        elif v < 1500: return '< 1500m'
+        else: return '> 1500m'
+        
+    df['rvr_bin'] = df['visibility'].apply(rvr_bin)
+    rvr_3d = df.groupby(['airport', 'hour', 'rvr_bin']).size().reset_index(name='count')
+    rvr_3d.to_json(os.path.join(OUTPUT_DIR, "rvr_sim_3d.json"), orient="records")
+
+    # 17. Temp Intervals (Gráfica 15)
+    temp_bins = [-100, -10, -6, -1, 4, 9, 14, 19, 24, 29, 34, 40, 100]
+    temp_labels = ['<-10ºC', '-10/-6', '-5/-1', '0/4', '5/9', '10/14', '15/19', '20/24', '25/29', '30/34', '35/40', '>40ºC']
+    df['temp_bin'] = pd.cut(df['temperature'], bins=temp_bins, labels=temp_labels)
+    temp_stacked = df.groupby(['airport', 'hour', 'temp_bin'], observed=True).size().reset_index(name='count')
+    temp_stacked.to_json(os.path.join(OUTPUT_DIR, "temp_intervals_freq.json"), orient="records")
+
+    # 18. Phenomena Macro Freq (Gráfica 16)
+    def categorize_phen(p):
+        if pd.isna(p): return 'Ninguno'
+        p = str(p).upper()
+        if 'RA' in p or 'LLUVIA' in p or 'SN' in p or 'NIEVE' in p or 'GR' in p or 'GS' in p or 'GRANIZO' in p:
+            return 'Precipitación'
+        if 'TS' in p or 'TORMENTA' in p:
+            return 'Tormenta'
+        if 'FG' in p or 'NIEBLA' in p or 'BR' in p or 'NEBLINA' in p or 'HZ' in p or 'BRUMA' in p:
+            return 'Visibilidad'
+        return 'Otros'
+        
+    df['phen_macro'] = df['phenomenon1'].apply(categorize_phen)
+    phen_macro_freq = df.groupby(['airport', 'phen_macro']).size().reset_index(name='count')
+    phen_macro_freq.to_json(os.path.join(OUTPUT_DIR, "phenomena_macro_freq.json"), orient="records")
+
+    print("Phase 3 JSON payloads generated successfully.")
 
 def generate_ai_context():
     context = {
-        "project_context": "Análisis meteorológico de 5 aeropuertos españoles. Se han aplicado filtros estacionales y métricas normalizadas.",
-        "insights": ["Se ha reemplazado la visibilidad estática por probabilidad de eventos LVP (Baja visibilidad) cruzados con el tráfico."]
+        "project_context": "Análisis meteorológico avanzado. Fase 3 implementada con 16 representaciones totales.",
+        "insights": ["Se incorporaron vistas tridimensionales temporales y análisis térmicos de alta resolución."]
     }
     with open(os.path.join(OUTPUT_DIR, "report_ai_context.json"), "w", encoding="utf-8") as f:
         json.dump(context, f, indent=4, ensure_ascii=False)

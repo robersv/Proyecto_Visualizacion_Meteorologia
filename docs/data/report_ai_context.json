@@ -1,6 +1,6 @@
 {
-    "project_context": "Análisis meteorológico de 5 aeropuertos españoles. Se han aplicado filtros estacionales y métricas normalizadas.",
+    "project_context": "Análisis meteorológico avanzado. Fase 3 implementada con 16 representaciones totales.",
     "insights": [
-        "Se ha reemplazado la visibilidad estática por probabilidad de eventos LVP (Baja visibilidad) cruzados con el tráfico."
+        "Se incorporaron vistas tridimensionales temporales y análisis térmicos de alta resolución."
     ]
 }
