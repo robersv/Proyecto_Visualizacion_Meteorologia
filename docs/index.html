@@ -5,16 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AeroMet Dashboard - Impacto Meteorológico en Operaciones</title>
     
-    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     
-    <!-- Plotly.js -->
     <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
-    
-    <!-- Custom CSS -->
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* Add some specific styles for the new table */
+        .phenomena-container { display: flex; align-items: center; justify-content: center; gap: 2rem; width: 100%; }
+        .data-table { border-collapse: collapse; width: 40%; font-size: 0.85rem; color: var(--text-secondary); background: var(--bg-main); border-radius: 8px; overflow: hidden;}
+        .data-table th, .data-table td { padding: 8px 12px; border-bottom: 1px solid var(--border-color); text-align: left; }
+        .data-table th { background: rgba(255,255,255,0.05); font-weight: 600; color: var(--text-primary); }
+        .multi-select { background: var(--bg-main); color: var(--text-primary); border: 1px solid var(--border-color); padding: 5px; height: 100px; border-radius: 6px; }
+    </style>
 </head>
 <body>
     <header class="navbar">
@@ -24,7 +28,6 @@
         </div>
         <div class="actions">
             <a href="data/report_ai_context.json" download class="btn-download">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                 Descargar Contexto IA (JSON)
             </a>
         </div>
@@ -32,128 +35,154 @@
 
     <main class="dashboard-container">
         <div class="intro-section">
-            <h2>Impacto Meteorológico en las Operaciones de Aeropuertos Españoles</h2>
-            <p>Este informe interactivo evalúa las condiciones de 5 grandes aeropuertos de España (GCLP, LEBL, LEMD, LEMG, LEPA) y cómo los factores meteorológicos (viento, visibilidad, lluvia) impactan en el volumen de tráfico (Aterrizajes y Despegues).</p>
+            <h2>Impacto Meteorológico en las Operaciones</h2>
+            <p>Análisis enfocado en los factores que realmente detienen o ralentizan las operaciones aéreas.</p>
         </div>
 
-        <!-- Section 1: Overview & Traffic -->
         <section class="dashboard-section">
-            <h3 class="section-title">1. Resumen de Tráfico y Fenómenos</h3>
-            <div class="chart-grid-2">
-                <div class="chart-card">
-                    <div class="chart-header">
-                        <h4>Distribución del Volumen de Tráfico</h4>
-                        <p class="chart-desc">Proporción de periodos de alta, media y baja demanda operativa.</p>
-                    </div>
-                    <div id="traffic-dist" class="chart-body"></div>
+            <h3 class="section-title">1. Resumen de Fenómenos</h3>
+            <div class="chart-card full-width">
+                <div class="chart-header">
+                    <h4>Gráfica 1: Fenómenos Meteorológicos Frecuentes</h4>
+                    <p class="chart-desc">Distribución porcentual. Se agrupan eventos menores al 10% en "Otros". (Consolidado Nacional)</p>
                 </div>
-                <div class="chart-card">
-                    <div class="chart-header">
-                        <h4>Fenómenos Meteorológicos Frecuentes</h4>
-                        <p class="chart-desc">Distribución porcentual de los reportes METAR con lluvia, niebla, etc.</p>
-                    </div>
-                    <div id="phenomena-dist" class="chart-body"></div>
+                <div class="phenomena-container">
+                    <div id="phenomena-dist" style="width: 55%; height: 400px;"></div>
+                    <table class="data-table" id="phenomena-table">
+                        <thead><tr><th>Fenómeno</th><th>Conteo</th><th>% Probabilidad</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
                 </div>
             </div>
         </section>
 
-        <!-- Section 2: Viento (Impacto crítico) -->
         <section class="dashboard-section">
-            <h3 class="section-title">2. Análisis de Viento y Ráfagas (Wind Shear)</h3>
+            <h3 class="section-title">2. Análisis de Viento y Ráfagas</h3>
             <div class="chart-grid-2">
                 <div class="chart-card">
                     <div class="chart-header">
-                        <h4>Rosas de los Vientos (Predominancia)</h4>
-                        <p class="chart-desc">Dirección e intensidad del viento predominante en los aeropuertos.</p>
+                        <h4>Gráfica 2: Rosa de los Vientos (Predominancia)</h4>
+                        <p class="chart-desc">Dirección e intensidad estacional del viento predominante.</p>
                     </div>
                     <div class="filters">
-                        <select id="wind-rose-airport-select" class="airport-select"></select>
+                        <select id="wind-rose-airport" class="airport-select">
+                            <option value="Todos">Consolidado (Todos)</option>
+                        </select>
+                        <select id="wind-rose-season" class="airport-select">
+                            <option value="Todos">Todo el Año</option>
+                            <option value="DJF (Invierno)">Invierno (DJF)</option>
+                            <option value="MAM (Primavera)">Primavera (MAM)</option>
+                            <option value="JJA (Verano)">Verano (JJA)</option>
+                            <option value="SON (Otoño)">Otoño (SON)</option>
+                        </select>
                     </div>
                     <div id="wind-rose" class="chart-body"></div>
                 </div>
                 <div class="chart-card">
                     <div class="chart-header">
-                        <h4>Dispersión de Ráfagas (Knots)</h4>
-                        <p class="chart-desc">Relación entre la velocidad sostenida y las ráfagas máximas según tráfico.</p>
+                        <h4>Gráfica 3: Dispersión de Ráfagas (Knots)</h4>
+                        <p class="chart-desc">Relación entre la velocidad sostenida y ráfagas máximas según tráfico.</p>
+                    </div>
+                    <div class="filters">
+                        <select id="gusts-airport" class="airport-select">
+                            <option value="Todos">Consolidado (Todos)</option>
+                        </select>
                     </div>
                     <div id="wind-gusts" class="chart-body"></div>
                 </div>
             </div>
         </section>
 
-        <!-- Section 3: Visibilidad y Nubes -->
         <section class="dashboard-section">
             <h3 class="section-title">3. Visibilidad y Cobertura Nubosa</h3>
             <div class="chart-grid-2">
                 <div class="chart-card">
                     <div class="chart-header">
-                        <h4>Visibilidad vs Volumen de Tráfico</h4>
-                        <p class="chart-desc">Variación de la visibilidad (metros) en diferentes estados de demanda operativa.</p>
+                        <h4>Gráfica 4: Incidencia de Baja Visibilidad (< 1000m)</h4>
+                        <p class="chart-desc">Porcentaje de periodos con baja visibilidad según nivel de tráfico operativo.</p>
+                    </div>
+                    <div class="filters">
+                        <select id="vis-airport" class="airport-select">
+                            <option value="Todos">Consolidado (Todos)</option>
+                        </select>
                     </div>
                     <div id="vis-traffic" class="chart-body"></div>
                 </div>
                 <div class="chart-card">
                     <div class="chart-header">
-                        <h4>Distribución de Cobertura Nubosa</h4>
-                        <p class="chart-desc">Cantidad de nubes (OVC, BKN, SCT) registradas por aeropuerto.</p>
+                        <h4>Gráfica 5: Evolución Diaria de Cobertura Nubosa</h4>
+                        <p class="chart-desc">Cantidad de reportes de nubes por día del mes. Selecciona meses para comparar.</p>
+                    </div>
+                    <div class="filters" style="display:flex; gap:10px;">
+                        <select id="clouds-airport" class="airport-select">
+                            <option value="Todos">Consolidado (Todos)</option>
+                        </select>
+                        <select id="clouds-months" class="multi-select" multiple>
+                            <option value="Enero" selected>Enero</option>
+                            <option value="Febrero">Febrero</option>
+                            <option value="Marzo">Marzo</option>
+                            <option value="Abril">Abril</option>
+                            <option value="Mayo">Mayo</option>
+                            <option value="Junio">Junio</option>
+                        </select>
                     </div>
                     <div id="cloud-amounts" class="chart-body"></div>
                 </div>
             </div>
         </section>
 
-        <!-- Section 4: Evolución Temporal y Relaciones -->
         <section class="dashboard-section">
-            <h3 class="section-title">4. Evolución Temporal y Factores Combinados</h3>
+            <h3 class="section-title">4. Evolución Temporal y Relaciones 3D</h3>
             
             <div class="chart-card full-width">
                 <div class="chart-header">
-                    <h4>Evolución Mensual: Temperatura y Visibilidad</h4>
-                    <p class="chart-desc">Tendencias a lo largo del año 2019.</p>
+                    <h4>Gráfica 6: Evolución Diaria de Temperatura y Visibilidad</h4>
+                    <p class="chart-desc">Tendencias a lo largo de los días del mes. Selecciona múltiples meses para sobreponer líneas.</p>
+                </div>
+                <div class="filters" style="display:flex; gap:10px;">
+                    <select id="evo-airport" class="airport-select">
+                        <option value="Todos">Consolidado (Todos)</option>
+                    </select>
+                    <select id="evo-months" class="multi-select" multiple>
+                        <option value="Enero" selected>Enero</option>
+                        <option value="Julio" selected>Julio</option>
+                        <option value="Diciembre">Diciembre</option>
+                    </select>
                 </div>
                 <div id="monthly-evo" class="chart-body" style="height: 400px;"></div>
             </div>
 
-            <div class="chart-grid-2">
-                <div class="chart-card">
-                    <div class="chart-header">
-                        <h4>Tráfico Operativo por Hora del Día</h4>
-                        <p class="chart-desc">Acumulación de operaciones a lo largo de las 24 horas.</p>
-                    </div>
-                    <div id="hourly-traffic" class="chart-body"></div>
+            <div class="chart-card full-width" style="margin-top: 2rem;">
+                <div class="chart-header">
+                    <h4>Gráfica 7: Modelo 3D de Condiciones de Niebla</h4>
+                    <p class="chart-desc">Interacción Temp vs Punto Rocío vs Visibilidad. Puntos de un mismo color representan un mes seleccionado.</p>
                 </div>
-                <div class="chart-card">
-                    <div class="chart-header">
-                        <h4>Correlación Termodinámica</h4>
-                        <p class="chart-desc">Relación entre Temp, Punto Rocío y Visibilidad (Probabilidad de Niebla).</p>
-                    </div>
-                    <div class="filters">
-                        <select id="corr-airport-select" class="airport-select"></select>
-                    </div>
-                    <div id="corr-heatmap" class="chart-body"></div>
+                <div class="filters">
+                    <select id="scatter3d-airport" class="airport-select">
+                        <option value="Todos">Consolidado (Todos)</option>
+                    </select>
                 </div>
+                <div id="scatter-3d" class="chart-body" style="height: 600px;"></div>
             </div>
         </section>
 
-        <!-- Section 5: Condiciones Adversas (Radar) -->
         <section class="dashboard-section">
-            <h3 class="section-title">5. Resumen de Condiciones Adversas</h3>
+            <h3 class="section-title">5. Análisis Comparativo Multivariado</h3>
             <div class="chart-card full-width">
                 <div class="chart-header">
-                    <h4>Comparativa de Factores Críticos</h4>
-                    <p class="chart-desc">Impacto de Niebla, Lluvia, Viento Fuerte y Techo Bajo por aeropuerto.</p>
+                    <h4>Gráfica 8: Perfil de Riesgo (Comparativa de Factores Críticos)</h4>
+                    <p class="chart-desc">Probabilidad normalizada (0-100%) de experimentar fenómenos críticos. Filtra por aeropuerto para ver la "huella climática".</p>
+                </div>
+                <div class="filters">
+                    <select id="radar-airport" class="airport-select">
+                        <option value="Todos">Comparativa Global (Todos)</option>
+                    </select>
                 </div>
                 <div id="radar-cond" class="chart-body" style="height: 500px;"></div>
             </div>
         </section>
 
     </main>
-
-    <footer>
-        <p>AeroMet Insights © 2026. Proyecto Universitario - Visualización de Datos.</p>
-    </footer>
-
-    <!-- Main Logic -->
     <script src="app.js"></script>
 </body>
 </html>

@@ -1,17 +1,11 @@
-// Theme configuration (matches CSS)
 const THEME = {
     bg_main: '#0B132B',
     bg_card: '#1C2541',
     text_primary: '#FFFFFF',
     text_secondary: '#979DAC',
     grid_color: 'rgba(255, 255, 255, 0.08)',
-    colors: {
-        ALTA: '#D62828',
-        MEDIA: '#F7B801',
-        BAJA: '#06D6A0'
-    },
-    wind: '#48CAE4',
-    cloud: '#979DAC'
+    colors: { ALTA: '#D62828', MEDIA: '#F7B801', BAJA: '#06D6A0' },
+    wind: '#48CAE4', cloud: '#979DAC'
 };
 
 const layoutBase = {
@@ -24,121 +18,125 @@ const layoutBase = {
     legend: { orientation: 'h', y: -0.2 }
 };
 
-// Fetch Helper
 async function loadData(filename) {
-    const response = await fetch(`data/${filename}`);
-    if (!response.ok) throw new Error(`Could not load ${filename}`);
-    return await response.json();
+    const res = await fetch(`data/${filename}`);
+    if (!res.ok) throw new Error(`Could not load ${filename}`);
+    return await res.json();
+}
+
+function populateSelect(selectId, options) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+    options.forEach(opt => select.add(new Option(opt, opt)));
 }
 
 async function initDashboard() {
     try {
-        // Load data in parallel
         const [
-            trafficData, phenData, windRoseData, visData, cloudData, 
-            monthlyData, hourlyData, corrData, radarData, gustsData
+            phenData, windRoseData, visData, cloudData, 
+            monthlyData, radarData, gustsData, scatter3dData
         ] = await Promise.all([
-            loadData('traffic_distribution.json'),
             loadData('phenomena_distribution.json'),
             loadData('wind_rose.json'),
             loadData('visibility_vs_traffic.json'),
             loadData('cloud_amounts.json'),
             loadData('monthly_evolution.json'),
-            loadData('hourly_traffic.json'),
-            loadData('correlation_heatmap.json'),
             loadData('radar_bad_conditions.json'),
-            loadData('wind_gusts.json')
+            loadData('wind_gusts.json'),
+            loadData('3d_scatter_data.json')
         ]);
 
-        const airports = [...new Set(trafficData.map(d => d.airport))];
-
-        // 1. Traffic Distribution (Grouped Bar)
-        plotTrafficDist(trafficData);
+        const airports = [...new Set(phenData.map(d => d.airport))];
+        ['wind-rose-airport', 'gusts-airport', 'vis-airport', 'clouds-airport', 'evo-airport', 'scatter3d-airport'].forEach(id => {
+            populateSelect(id, airports);
+        });
         
-        // 2. Phenomena Distribution (Donut / Pie)
+        // Radar has special airport selector
+        const radarSelect = document.getElementById('radar-airport');
+        airports.forEach(apt => radarSelect.add(new Option(apt, apt)));
+
+        // 1. Phenomena Dist
         plotPhenomenaDist(phenData);
         
-        // 3. Wind Rose
+        // 2. Wind Rose
         setupWindRose(windRoseData, airports);
         
-        // 4. Gusts Dispersion (Scatter)
-        plotWindGusts(gustsData);
+        // 3. Gusts (Scatter)
+        setupWindGusts(gustsData);
 
-        // 5. Visibility vs Traffic (Boxplot)
-        plotVisTraffic(visData);
+        // 4. Vis Traffic (Bar)
+        setupVisTraffic(visData);
 
-        // 6. Cloud amounts (Donut)
-        plotCloudAmounts(cloudData);
+        // 5. Cloud amounts (Bar, time series)
+        setupCloudAmounts(cloudData);
 
-        // 7. Monthly Evolution (Line)
-        plotMonthlyEvolution(monthlyData, airports);
+        // 6. Monthly Evo (Line, time series)
+        setupMonthlyEvo(monthlyData);
 
-        // 8. Hourly Traffic (Stacked Area)
-        plotHourlyTraffic(hourlyData, airports);
+        // 7. 3D Scatter
+        setupScatter3D(scatter3dData);
 
-        // 9. Correlation Heatmap
-        setupCorrHeatmap(corrData, airports);
-
-        // 10. Radar Bad Conditions
-        plotRadarCond(radarData);
+        // 8. Radar Cond
+        setupRadarCond(radarData, airports);
 
     } catch (e) {
-        console.error("Dashboard initialization error:", e);
+        console.error("Dashboard init error:", e);
     }
 }
 
-// 1. Traffic Dist (Bar)
-function plotTrafficDist(data) {
-    const airports = [...new Set(data.map(d => d.airport))];
-    const traces = ['ALTA', 'MEDIA', 'BAJA'].map(level => {
-        return {
-            x: airports,
-            y: airports.map(apt => {
-                const row = data.find(d => d.airport === apt);
-                return row ? row[level] || 0 : 0;
-            }),
-            name: level,
-            type: 'bar',
-            marker: { color: THEME.colors[level] }
-        };
-    });
-
-    Plotly.newPlot('traffic-dist', traces, {
-        ...layoutBase,
-        barmode: 'group',
-        yaxis: { ...layoutBase.yaxis, title: 'Periodos (30m)' }
-    }, {responsive: true});
-}
-
-// 2. Phenomena Dist (Donut)
+// 1. Phenomena
 function plotPhenomenaDist(data) {
-    // Aggregate all airports
+    let total = 0;
     const agg = {};
     data.forEach(d => {
         agg[d.phenomenon] = (agg[d.phenomenon] || 0) + d.count;
+        total += d.count;
     });
-    // Filter top 10
-    const sorted = Object.entries(agg).sort((a,b) => b[1] - a[1]).slice(0, 10);
-    
-    const trace = {
-        labels: sorted.map(d => d[0]),
-        values: sorted.map(d => d[1]),
-        type: 'pie',
-        hole: 0.4,
-        marker: {
-            colors: ['#48CAE4', '#979DAC', '#F7B801', '#5C677D', '#1C2541']
+
+    const threshold = total * 0.10; // 10%
+    const grouped = { 'Otros': 0 };
+    const tableData = [];
+
+    for (const [phen, count] of Object.entries(agg)) {
+        tableData.push({ phen, count, pct: (count/total)*100 });
+        if (count < threshold) {
+            grouped['Otros'] += count;
+        } else {
+            grouped[phen] = count;
         }
+    }
+    
+    // Sort table descending
+    tableData.sort((a,b) => b.count - a.count);
+    const tbody = document.querySelector('#phenomena-table tbody');
+    tableData.forEach(r => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${r.phen}</td><td>${r.count}</td><td>${r.pct.toFixed(2)}%</td>`;
+        tbody.appendChild(tr);
+    });
+
+    const trace = {
+        labels: Object.keys(grouped),
+        values: Object.values(grouped),
+        type: 'pie', hole: 0.4,
+        marker: { colors: ['#48CAE4', '#F7B801', '#D62828', '#979DAC'] }
     };
     Plotly.newPlot('phenomena-dist', [trace], { ...layoutBase, margin: {t:10, b:10, l:10, r:10}}, {responsive: true});
 }
 
-// 3. Wind Rose
+// 2. Wind Rose
 function setupWindRose(data, airports) {
-    const select = document.getElementById('wind-rose-airport-select');
-    airports.forEach(apt => select.add(new Option(apt, apt)));
+    const selApt = document.getElementById('wind-rose-airport');
+    const selSeason = document.getElementById('wind-rose-season');
     
-    const render = (apt) => {
-        const aptData = data.filter(d => d.airport === apt);
+    const render = () => {
+        const apt = selApt.value;
+        const season = selSeason.value;
+        
+        let d = data;
+        if(apt !== 'Todos') d = d.filter(x => x.airport === apt);
+        if(season !== 'Todos') d = d.filter(x => x.season === season);
+        
         const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
         const speeds = ['0-5', '5-10', '10-15', '15-20', '20+'];
         const colorScale = ['#90E0EF', '#48CAE4', '#00B4D8', '#0077B6', '#03045E'];
@@ -146,189 +144,201 @@ function setupWindRose(data, airports) {
         const traces = speeds.map((speed, i) => {
             return {
                 r: directions.map(dir => {
-                    const row = aptData.find(d => d.wind_dir_cat === dir && d.wind_speed_cat === speed);
-                    return row ? row.count : 0;
+                    const rows = d.filter(x => x.wind_dir_cat === dir && x.wind_speed_cat === speed);
+                    return rows.reduce((sum, r) => sum + r.count, 0);
                 }),
                 theta: directions,
-                name: speed + ' kt',
-                type: 'barpolar',
+                name: speed + ' kt', type: 'barpolar',
                 marker: { color: colorScale[i] }
             };
         });
 
         Plotly.newPlot('wind-rose', traces, {
-            plot_bgcolor: THEME.bg_card,
-            paper_bgcolor: THEME.bg_card,
-            font: { color: THEME.text_primary, family: 'Inter' },
-            polar: {
-                radialaxis: { visible: false },
-                angularaxis: { color: THEME.text_secondary, gridcolor: THEME.grid_color },
-                bgcolor: THEME.bg_card
-            },
-            margin: { t:20, b:20, l:20, r:20 }
+            ...layoutBase, polar: { angularaxis: { color: THEME.text_secondary }, bgcolor: THEME.bg_card }
         }, {responsive: true});
     };
-    
-    select.addEventListener('change', (e) => render(e.target.value));
-    render(airports[0]);
+    selApt.addEventListener('change', render);
+    selSeason.addEventListener('change', render);
+    render();
 }
 
-// 4. Wind Gusts (Scatter)
-function plotWindGusts(data) {
-    const traces = ['ALTA', 'MEDIA', 'BAJA'].map(level => {
-        const d = data.filter(r => r.volume_group === level);
-        return {
-            x: d.map(r => r.knots),
-            y: d.map(r => r.maxKnots),
-            mode: 'markers',
-            type: 'scatter',
-            name: level,
-            marker: { color: THEME.colors[level], size: 6, opacity: 0.6 }
-        };
-    });
-    Plotly.newPlot('wind-gusts', traces, {
-        ...layoutBase,
-        xaxis: { ...layoutBase.xaxis, title: 'Viento Sostenido (kt)' },
-        yaxis: { ...layoutBase.yaxis, title: 'Ráfaga Máxima (kt)' }
-    }, {responsive: true});
-}
-
-// 5. Visibility vs Traffic (Boxplot)
-function plotVisTraffic(data) {
-    const traces = ['ALTA', 'MEDIA', 'BAJA'].map(level => {
-        const d = data.filter(r => r.volume_group === level);
-        return {
-            y: d.map(r => r.visibility),
-            type: 'box',
-            name: level,
-            marker: { color: THEME.colors[level] }
-        };
-    });
-    Plotly.newPlot('vis-traffic', traces, {
-        ...layoutBase,
-        yaxis: { ...layoutBase.yaxis, title: 'Visibilidad (m)' }
-    }, {responsive: true});
-}
-
-// 6. Cloud Amounts (Bar)
-function plotCloudAmounts(data) {
-    // aggregate across airports for simplicity
-    const agg = {};
-    data.forEach(d => {
-        agg[d.amount] = (agg[d.amount] || 0) + d.count;
-    });
-    
-    const trace = {
-        x: Object.keys(agg),
-        y: Object.values(agg),
-        type: 'bar',
-        marker: { color: THEME.cloud }
-    };
-    Plotly.newPlot('cloud-amounts', [trace], layoutBase, {responsive: true});
-}
-
-// 7. Monthly Evolution (Line)
-function plotMonthlyEvolution(data, airports) {
-    const traces = airports.map(apt => {
-        const d = data.filter(r => r.airport === apt).sort((a,b) => a.month.localeCompare(b.month));
-        return {
-            x: d.map(r => r.month),
-            y: d.map(r => r.visibility),
-            type: 'scatter',
-            mode: 'lines+markers',
-            name: apt
-        };
-    });
-    Plotly.newPlot('monthly-evo', traces, {
-        ...layoutBase,
-        yaxis: { ...layoutBase.yaxis, title: 'Visibilidad Promedio (m)' }
-    }, {responsive: true});
-}
-
-// 8. Hourly Traffic (Stacked Area)
-function plotHourlyTraffic(data) {
-    // Let's just sum across airports for global view
-    const hours = [...Array(24).keys()];
-    const traces = ['ALTA', 'MEDIA', 'BAJA'].map(level => {
-        return {
-            x: hours,
-            y: hours.map(h => {
-                const rows = data.filter(d => d.hour === h);
-                return rows.reduce((sum, r) => sum + (r[level] || 0), 0);
-            }),
-            name: level,
-            type: 'scatter',
-            mode: 'lines',
-            stackgroup: 'one',
-            line: { color: THEME.colors[level] }
-        };
-    });
-    Plotly.newPlot('hourly-traffic', traces, {
-        ...layoutBase,
-        xaxis: { ...layoutBase.xaxis, title: 'Hora del Día (UTC)' },
-        yaxis: { ...layoutBase.yaxis, title: 'Acumulado Periodos' }
-    }, {responsive: true});
-}
-
-// 9. Correlation Heatmap
-function setupCorrHeatmap(data, airports) {
-    const select = document.getElementById('corr-airport-select');
-    airports.forEach(apt => select.add(new Option(apt, apt)));
-    
-    const render = (apt) => {
-        const aptData = data.filter(d => d.airport === apt);
-        if(!aptData.length) return;
-        const vars = ['temperature', 'dewPoint', 'visibility', 'knots', 'height'];
+// 3. Gusts Scatter
+function setupWindGusts(data) {
+    const selApt = document.getElementById('gusts-airport');
+    const render = () => {
+        let d = data;
+        if(selApt.value !== 'Todos') d = d.filter(x => x.airport === selApt.value);
         
-        const z = vars.map(v1 => {
-            const row = aptData.find(d => d.variable === v1);
-            return vars.map(v2 => row ? row[v2] : 0);
+        const traces = ['ALTA', 'MEDIA', 'BAJA'].map(lvl => {
+            const sub = d.filter(r => r.volume_group === lvl);
+            return {
+                x: sub.map(r => r.knots), y: sub.map(r => r.maxKnots),
+                mode: 'markers', type: 'scatter', name: lvl,
+                marker: { color: THEME.colors[lvl], size: 6, opacity: 0.6 }
+            };
         });
-
-        const trace = {
-            z: z,
-            x: ['Temp', 'Dew Pt', 'Vis', 'Wind', 'Ceiling'],
-            y: ['Temp', 'Dew Pt', 'Vis', 'Wind', 'Ceiling'],
-            type: 'heatmap',
-            colorscale: 'RdBu',
-            zmin: -1,
-            zmax: 1
-        };
-        Plotly.newPlot('corr-heatmap', [trace], { ...layoutBase, margin: {t:20, b:40, l:60, r:20}}, {responsive: true});
+        Plotly.newPlot('wind-gusts', traces, {
+            ...layoutBase, xaxis: { ...layoutBase.xaxis, title: 'Viento Sostenido (kt)' },
+            yaxis: { ...layoutBase.yaxis, title: 'Ráfaga Máxima (kt)' }
+        }, {responsive: true});
     };
-    
-    select.addEventListener('change', (e) => render(e.target.value));
-    render(airports[0]);
+    selApt.addEventListener('change', render);
+    render();
 }
 
-// 10. Radar Bad Conditions
-function plotRadarCond(data) {
-    const vars = ['is_low_vis', 'is_high_wind', 'is_low_ceiling', 'has_rain', 'has_fog'];
-    const labels = ['Baja Vis.', 'Viento Fuerte', 'Techo Bajo', 'Lluvia', 'Niebla'];
-    
-    const traces = data.map(aptRow => {
-        // Normalize values slightly to fit radar well (or just plot raw counts)
-        // Here we use raw counts
-        return {
-            type: 'scatterpolar',
-            r: vars.map(v => aptRow[v]),
-            theta: labels,
-            fill: 'toself',
-            name: aptRow.airport
-        };
-    });
-
-    Plotly.newPlot('radar-cond', traces, {
-        polar: {
-            radialaxis: { visible: true, angle: 90, color: THEME.text_secondary, gridcolor: THEME.grid_color },
-            angularaxis: { color: THEME.text_primary, gridcolor: THEME.grid_color },
-            bgcolor: THEME.bg_card
-        },
-        plot_bgcolor: THEME.bg_card,
-        paper_bgcolor: THEME.bg_card,
-        font: { color: THEME.text_primary, family: 'Inter' }
-    }, {responsive: true});
+// 4. Vis Traffic (Bar Pct)
+function setupVisTraffic(data) {
+    const selApt = document.getElementById('vis-airport');
+    const render = () => {
+        let d = data;
+        if(selApt.value !== 'Todos') d = d.filter(x => x.airport === selApt.value);
+        
+        // aggregate
+        const agg = {'ALTA':{l:0, t:0}, 'MEDIA':{l:0, t:0}, 'BAJA':{l:0, t:0}};
+        d.forEach(r => {
+            if(agg[r.volume_group]) {
+                agg[r.volume_group].l += r.low_vis_count;
+                agg[r.volume_group].t += r.total;
+            }
+        });
+        
+        const x = ['ALTA', 'MEDIA', 'BAJA'];
+        const y = x.map(lvl => agg[lvl].t > 0 ? (agg[lvl].l / agg[lvl].t)*100 : 0);
+        
+        Plotly.newPlot('vis-traffic', [{
+            x: x, y: y, type: 'bar',
+            marker: { color: x.map(lvl => THEME.colors[lvl]) }
+        }], { ...layoutBase, yaxis: { ...layoutBase.yaxis, title: '% Periodos Baja Vis (<1000m)' }}, {responsive: true});
+    };
+    selApt.addEventListener('change', render);
+    render();
 }
 
-// Boot
+// 5. Cloud Amounts
+function setupCloudAmounts(data) {
+    const selApt = document.getElementById('clouds-airport');
+    const selMonths = document.getElementById('clouds-months');
+    const render = () => {
+        let d = data;
+        if(selApt.value !== 'Todos') d = d.filter(x => x.airport === selApt.value);
+        const selectedMonths = Array.from(selMonths.selectedOptions).map(opt => opt.value);
+        
+        const traces = selectedMonths.map(month => {
+            const sub = d.filter(x => x.month_name === month);
+            const days = [...Array(31).keys()].map(i => i+1);
+            return {
+                x: days,
+                y: days.map(day => {
+                    return sub.filter(x => x.day === day).reduce((sum, r) => sum + r.count, 0);
+                }),
+                type: 'bar', name: month
+            };
+        });
+        Plotly.newPlot('cloud-amounts', traces, {
+            ...layoutBase, barmode: 'group', xaxis: { ...layoutBase.xaxis, title: 'Día del Mes' }
+        }, {responsive: true});
+    };
+    selApt.addEventListener('change', render);
+    selMonths.addEventListener('change', render);
+    render();
+}
+
+// 6. Monthly Evo
+function setupMonthlyEvo(data) {
+    const selApt = document.getElementById('evo-airport');
+    const selMonths = document.getElementById('evo-months');
+    const render = () => {
+        let d = data;
+        if(selApt.value !== 'Todos') d = d.filter(x => x.airport === selApt.value);
+        const selectedMonths = Array.from(selMonths.selectedOptions).map(opt => opt.value);
+        
+        const traces = selectedMonths.map(month => {
+            const sub = d.filter(x => x.month_name === month);
+            const days = [...Array(31).keys()].map(i => i+1);
+            
+            return {
+                x: days,
+                y: days.map(day => {
+                    const recs = sub.filter(x => x.day === day);
+                    if(!recs.length) return null;
+                    return recs.reduce((sum, r) => sum + r.visibility, 0) / recs.length;
+                }),
+                type: 'scatter', mode: 'lines+markers', name: month
+            };
+        });
+        Plotly.newPlot('monthly-evo', traces, {
+            ...layoutBase, xaxis: { ...layoutBase.xaxis, title: 'Día del Mes' },
+            yaxis: { ...layoutBase.yaxis, title: 'Visibilidad Promedio (m)' }
+        }, {responsive: true});
+    };
+    selApt.addEventListener('change', render);
+    selMonths.addEventListener('change', render);
+    render();
+}
+
+// 7. Scatter 3D
+function setupScatter3D(data) {
+    const selApt = document.getElementById('scatter3d-airport');
+    const render = () => {
+        let d = data;
+        if(selApt.value !== 'Todos') d = d.filter(x => x.airport === selApt.value);
+        
+        const months = [...new Set(d.map(x => x.month_name))];
+        const traces = months.map(m => {
+            const sub = d.filter(x => x.month_name === m);
+            return {
+                x: sub.map(x => x.temperature),
+                y: sub.map(x => x.dewPoint),
+                z: sub.map(x => x.visibility),
+                mode: 'markers', type: 'scatter3d', name: m,
+                marker: { size: 3, opacity: 0.8 }
+            };
+        });
+        Plotly.newPlot('scatter-3d', traces, {
+            ...layoutBase, margin: {l:0, r:0, b:0, t:0},
+            scene: {
+                xaxis: { title: 'Temp (C)' },
+                yaxis: { title: 'Dew Pt (C)' },
+                zaxis: { title: 'Visibility (m)' },
+                bgcolor: THEME.bg_main
+            }
+        }, {responsive: true});
+    };
+    selApt.addEventListener('change', render);
+    render();
+}
+
+// 8. Radar Cond
+function setupRadarCond(data) {
+    const selApt = document.getElementById('radar-airport');
+    const render = () => {
+        const apt = selApt.value;
+        const vars = ['is_low_vis', 'is_high_wind', 'is_low_ceiling', 'has_rain', 'has_fog'];
+        const labels = ['Baja Vis.', 'Viento Fuerte', 'Techo Bajo', 'Lluvia', 'Niebla'];
+        
+        let traces = [];
+        if (apt === 'Todos') {
+            traces = data.map(r => ({
+                type: 'scatterpolar', r: vars.map(v => r[v]*100), theta: labels, fill: 'toself', name: r.airport
+            }));
+        } else {
+            const r = data.find(x => x.airport === apt);
+            if(r) {
+                traces = [{
+                    type: 'scatterpolar', r: vars.map(v => r[v]*100), theta: labels, fill: 'toself', name: r.airport
+                }];
+            }
+        }
+
+        Plotly.newPlot('radar-cond', traces, {
+            ...layoutBase, polar: {
+                radialaxis: { visible: true, range: [0, 100], color: THEME.text_secondary },
+                angularaxis: { color: THEME.text_primary }, bgcolor: THEME.bg_main
+            }
+        }, {responsive: true});
+    };
+    selApt.addEventListener('change', render);
+    render();
+}
+
 window.onload = initDashboard;

@@ -1,46 +1,6 @@
 {
-    "project_context": "Análisis meteorológico de 5 aeropuertos españoles (GCLP, LEBL, LEMD, LEMG, LEPA) durante el año 2019 usando informes METAR. El objetivo es identificar el impacto meteorológico en las operaciones aeroportuarias.",
-    "instructions_for_ai": "Utiliza los datos siguientes y los gráficos generados en el Dashboard de GitHub Pages para redactar un informe profesional. Inserta los enlaces a los gráficos donde sea pertinente. Debes generar el documento en formato legible para ser importado a Google Docs.",
+    "project_context": "Análisis meteorológico de 5 aeropuertos españoles. Se han aplicado filtros estacionales y métricas normalizadas.",
     "insights": [
-        "La visibilidad baja y los vientos fuertes son los factores que más impactan en la transición de tráfico ALTA a BAJA.",
-        "El relleno hacia adelante (ffill) se aplicó para mitigar diferencias de frecuencia en los registros meteorológicos.",
-        "Aeropuertos como GCLP muestran mayor impacto por viento, mientras que LEBL/LEMD muestran impacto por niebla (visibilidad baja)."
-    ],
-    "graphs_mapping": [
-        {
-            "title": "Distribución del Tráfico",
-            "url": "index.html#traffic-dist",
-            "description": "Gráfico de barras que muestra el conteo de periodos ALTA, MEDIA, BAJA por aeropuerto."
-        },
-        {
-            "title": "Rosa de los Vientos",
-            "url": "index.html#wind-rose",
-            "description": "Polar bar chart mostrando la dirección e intensidad del viento predominante."
-        },
-        {
-            "title": "Visibilidad vs Tráfico",
-            "url": "index.html#vis-traffic",
-            "description": "Boxplot mostrando cómo la visibilidad varía según el nivel de tráfico."
-        },
-        {
-            "title": "Evolución Mensual",
-            "url": "index.html#monthly-evo",
-            "description": "Gráfico de líneas con la tendencia de visibilidad y temperatura a lo largo de los meses."
-        },
-        {
-            "title": "Condiciones Adversas",
-            "url": "index.html#radar-cond",
-            "description": "Gráfico de radar comparando aeropuertos en factores críticos (Niebla, Viento Alto, Lluvia)."
-        },
-        {
-            "title": "Tráfico por Hora",
-            "url": "index.html#hourly-traffic",
-            "description": "Áreas apiladas que muestran cómo varía el tráfico a lo largo del día y su posible relación térmica."
-        },
-        {
-            "title": "Correlación Meteorológica",
-            "url": "index.html#corr-heatmap",
-            "description": "Heatmap de correlación entre temperatura, punto de rocío, visibilidad y vientos."
-        }
+        "Se ha reemplazado la visibilidad estática por probabilidad de eventos LVP (Baja visibilidad) cruzados con el tráfico."
     ]
 }
