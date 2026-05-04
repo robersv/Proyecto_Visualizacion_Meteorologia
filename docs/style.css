@@ -1,0 +1,203 @@
+:root {
+    /* Corporate Dark Mode Premium Theme */
+    --bg-main: #0B132B;
+    --bg-card: #1C2541;
+    --bg-card-hover: #2a3454;
+    
+    /* Text Colors */
+    --text-primary: #FFFFFF;
+    --text-secondary: #979DAC;
+    --text-muted: #5C677D;
+
+    /* Acentos Meteorológicos */
+    --accent-wind: #48CAE4; /* Cyan - Wind/Cold */
+    --accent-wind-light: #90E0EF;
+    --accent-heat: #F77F00; /* Orange - Heat/Sun */
+    --accent-heat-light: #FCBF49;
+    --accent-cloud: #979DAC; /* Gray - Rain/Fog */
+
+    /* Acentos de Tráfico (Semáforo) */
+    --traffic-alta: #D62828; /* Coral Red */
+    --traffic-media: #F7B801; /* Golden Yellow */
+    --traffic-baja: #06D6A0; /* Emerald Green */
+
+    --border-color: rgba(255, 255, 255, 0.08);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    line-height: 1.6;
+}
+
+/* Navbar */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 3rem;
+    background-color: var(--bg-card);
+    border-bottom: 1px solid var(--border-color);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.logo h1 {
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+}
+
+.logo span {
+    color: var(--accent-wind);
+}
+
+.logo p {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.btn-download {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, var(--accent-wind), #0077B6);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.btn-download:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(72, 202, 228, 0.3);
+}
+
+/* Dashboard Container */
+.dashboard-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.intro-section {
+    margin-bottom: 3rem;
+    max-width: 800px;
+}
+
+.intro-section h2 {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+.intro-section p {
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+}
+
+.dashboard-section {
+    margin-bottom: 4rem;
+}
+
+.section-title {
+    font-size: 1.4rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--accent-wind-light);
+}
+
+/* Grids */
+.chart-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+}
+
+@media (max-width: 992px) {
+    .chart-grid-2 {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Cards */
+.chart-card {
+    background-color: var(--bg-card);
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 1px solid var(--border-color);
+    transition: background-color 0.3s;
+    display: flex;
+    flex-direction: column;
+}
+
+.chart-card:hover {
+    background-color: var(--bg-card-hover);
+}
+
+.chart-card.full-width {
+    grid-column: 1 / -1;
+}
+
+.chart-header {
+    margin-bottom: 1rem;
+}
+
+.chart-header h4 {
+    font-size: 1.1rem;
+    margin-bottom: 0.25rem;
+}
+
+.chart-desc {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.chart-body {
+    flex-grow: 1;
+    min-height: 350px;
+    width: 100%;
+}
+
+.filters {
+    margin-bottom: 1rem;
+}
+
+.airport-select {
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    outline: none;
+}
+
+footer {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    border-top: 1px solid var(--border-color);
+    margin-top: 4rem;
+}
+
+/* Plotly dark mode overrides (will also be handled in JS, but just in case) */
+.js-plotly-plot .plotly .main-svg {
+    border-radius: 8px;
+}
