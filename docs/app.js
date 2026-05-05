@@ -63,11 +63,14 @@ async function initDashboard() {
         });
 
         // Multiselectors
+        populateSelect('phenomena-months', MONTH_NAMES, false);
         populateSelect('evo-months', MONTH_NAMES, false);
         populateSelect('clouds-months', MONTH_NAMES, false);
         populateSelect('macro-phen-airport', airports, false);
 
         // Pre-select some multiselects
+        const phenM = document.getElementById('phenomena-months');
+        if(phenM && phenM.options.length > 0) phenM.options[0].selected = true;
         const evoM = document.getElementById('evo-months');
         if(evoM && evoM.options.length > 0) evoM.options[0].selected = true;
         const cloudM = document.getElementById('clouds-months');
@@ -97,9 +100,19 @@ async function initDashboard() {
 // 1. Phenomena
 function plotPhenomenaDist(data) {
     const selApt = document.getElementById('phenomena-airport');
+    const selMonths = document.getElementById('phenomena-months');
     const render = () => {
-        let d = dateFilter(data, 'phenomena-date-start', 'phenomena-date-end');
+        let d = data;
         if(selApt.value !== 'Todos') d = d.filter(x => x.airport === selApt.value);
+
+        const selectedMonths = Array.from(selMonths.selectedOptions).map(opt => opt.value);
+        if (selectedMonths.length > 0) {
+            d = d.filter(x => {
+                if(!x.date) return true; // fallback if data doesn't have date
+                const m = parseInt(x.date.split('-')[1]);
+                return selectedMonths.includes(MONTH_NAMES[m-1]);
+            });
+        }
 
         let total = 0; const agg = {};
         d.forEach(r => { agg[r.phenomenon] = (agg[r.phenomenon] || 0) + Number(r.count); total += Number(r.count); });
@@ -122,7 +135,7 @@ function plotPhenomenaDist(data) {
         const trace = { labels: Object.keys(grouped), values: Object.values(grouped), type: 'pie', hole: 0.4, marker: { colors: ['#48CAE4', '#F7B801', '#D62828', '#979DAC'] } };
         Plotly.newPlot('phenomena-dist', [trace], { ...layoutBase, margin: {t:10, b:10, l:10, r:10}}, {responsive: true});
     };
-    ['phenomena-airport', 'phenomena-date-start', 'phenomena-date-end'].forEach(id => {
+    ['phenomena-airport', 'phenomena-months'].forEach(id => {
         document.getElementById(id).addEventListener('change', render);
     });
     render();
