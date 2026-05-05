@@ -46,6 +46,9 @@ def load_and_merge_airport_data(airport_code):
         if col in df_merged.columns:
             df_merged[col] = df_merged[col].ffill()
             
+    if 'amount' in df_merged.columns:
+        df_merged['amount'] = df_merged['amount'].fillna('Despejado/CAVOK')
+            
     return df_merged
 
 def process_all_airports():
@@ -97,13 +100,12 @@ def generate_json_payloads(df):
     if len(gusts_data) > 10000: gusts_data = gusts_data.sample(10000)
     gusts_data.to_json(os.path.join(OUTPUT_DIR, "wind_gusts.json"), orient="records")
     
-    # 5. Visibility vs Traffic
+    # 5. Visibility vs Traffic (Graph 4 Redesign)
     df['is_low_vis'] = df['visibility'] < 1000
-    vis_traffic = df.groupby(['airport', 'volume_group']).agg(
+    vis_traffic = df.groupby(['airport', 'month_name', 'hour', 'volume_group'], observed=True).agg(
         total=('is_low_vis', 'count'),
         low_vis_count=('is_low_vis', 'sum')
     ).reset_index()
-    vis_traffic['low_vis_pct'] = (vis_traffic['low_vis_count'] / vis_traffic['total']) * 100
     vis_traffic.to_json(os.path.join(OUTPUT_DIR, "visibility_vs_traffic.json"), orient="records")
     
     # 6. Cloud Amounts
@@ -111,10 +113,11 @@ def generate_json_payloads(df):
     cloud_amounts.to_json(os.path.join(OUTPUT_DIR, "cloud_amounts.json"), orient="records")
     
     # 7. Monthly Evolution
-    monthly_evo = df.groupby(['airport', 'month_name', 'day'], observed=True).agg({
+    monthly_evo = df.groupby(['airport', 'date'], observed=True).agg({
         'temperature': 'mean',
         'visibility': 'mean'
     }).reset_index()
+    monthly_evo['date'] = monthly_evo['date'].astype(str)
     monthly_evo.to_json(os.path.join(OUTPUT_DIR, "monthly_evolution.json"), orient="records")
 
     # 8. Phenomena Distribution
@@ -125,20 +128,21 @@ def generate_json_payloads(df):
     phen_dist.to_json(os.path.join(OUTPUT_DIR, "phenomena_distribution.json"), orient="records")
 
     # 9. Correlation Termodinámica -> 3D Scatter
-    data_3d = df[['airport', 'temperature', 'dewPoint', 'visibility', 'month_name']].dropna()
-    if len(data_3d) > 3000:
-        data_3d = data_3d.sample(3000)
+    data_3d = df[['airport', 'date', 'hour', 'temperature', 'dewPoint', 'visibility']].dropna()
+    data_3d['date'] = data_3d['date'].astype(str)
+    # Removing sampling limit to allow dynamic JS time resolution grouping
     data_3d.to_json(os.path.join(OUTPUT_DIR, "3d_scatter_data.json"), orient="records")
 
-    # 10. Radar Bad Conditions
+    # 10. Risk Profile (Graph 8)
     df['is_high_wind'] = df['knots'] > 15
     df['is_low_ceiling'] = df['height'] < 500
     df['has_rain'] = df['phenomenon1'].str.contains('Lluvia', case=False, na=False) | df['phenomenon1'].str.contains('RA', na=False)
     df['has_fog'] = df['phenomenon1'].str.contains('Niebla', case=False, na=False) | df['phenomenon1'].str.contains('FG', na=False)
-    radar_cond = df.groupby('airport').agg({
+    radar_cond = df.groupby(['airport', 'date']).agg({
         'is_low_vis': 'mean', 'is_high_wind': 'mean', 'is_low_ceiling': 'mean',
         'has_rain': 'mean', 'has_fog': 'mean'
     }).reset_index()
+    radar_cond['date'] = radar_cond['date'].astype(str)
     radar_cond.to_json(os.path.join(OUTPUT_DIR, "radar_bad_conditions.json"), orient="records")
 
     # --- PHASE 3 NEW JSON PAYLOADS ---
@@ -174,14 +178,12 @@ def generate_json_payloads(df):
     climate_merged['sunshine_hours'] = climate_merged.apply(get_sunshine, axis=1)
     climate_merged.to_json(os.path.join(OUTPUT_DIR, "climatological_summary.json"), orient="records")
 
-    # 12. Daily Temperature Boxplot (Gráfica 10)
-    daily_temp = df.groupby(['airport', 'date', 'month_name']).agg({
-        'temperature': ['min', 'max', 'mean'],
-        'phenomenon1': lambda x: x.mode()[0] if not x.mode().empty else 'Ninguno'
+    # 12. Hourly Temperature (Gráfica 10)
+    hourly_temp = df.groupby(['airport', 'date', 'hour']).agg({
+        'temperature': 'mean'
     }).reset_index()
-    daily_temp.columns = ['airport', 'date', 'month_name', 'min_temp', 'max_temp', 'mean_temp', 'main_phenomenon']
-    daily_temp['date'] = daily_temp['date'].astype(str)
-    daily_temp.to_json(os.path.join(OUTPUT_DIR, "daily_temperature.json"), orient="records")
+    hourly_temp['date'] = hourly_temp['date'].astype(str)
+    hourly_temp.to_json(os.path.join(OUTPUT_DIR, "hourly_temperature.json"), orient="records")
 
     # 13. Wind Direction Freq (Gráfica 11)
     dir_bins = np.linspace(5, 365, 13)
@@ -192,7 +194,8 @@ def generate_json_payloads(df):
 
     df['wind_category'] = df['wind_30_deg'].astype(str)
     df.loc[df['knots'] == 0, 'wind_category'] = 'Calma'
-    wind_freq = df.groupby(['airport', 'wind_category']).size().reset_index(name='count')
+    wind_freq = df.groupby(['airport', 'date', 'wind_category']).size().reset_index(name='count')
+    wind_freq['date'] = wind_freq['date'].astype(str)
     wind_freq.to_json(os.path.join(OUTPUT_DIR, "wind_direction_freq.json"), orient="records")
 
     # 14. 3D Cloud Base Freq (Gráfica 12)
@@ -205,7 +208,8 @@ def generate_json_payloads(df):
         else: return '> 300m'
     
     df['cloud_base_bin'] = df['height'].apply(cloud_bin)
-    cloud_3d = df.groupby(['airport', 'hour', 'cloud_base_bin']).size().reset_index(name='count')
+    cloud_3d = df.groupby(['airport', 'date', 'hour', 'cloud_base_bin']).size().reset_index(name='count')
+    cloud_3d['date'] = cloud_3d['date'].astype(str)
     cloud_3d.to_json(os.path.join(OUTPUT_DIR, "cloud_base_3d.json"), orient="records")
 
     # 15. 3D Visibility Freq (Gráfica 13)
@@ -218,7 +222,8 @@ def generate_json_payloads(df):
         else: return '> 5000m'
         
     df['vis_bin'] = df['visibility'].apply(vis_bin)
-    vis_3d = df.groupby(['airport', 'hour', 'vis_bin']).size().reset_index(name='count')
+    vis_3d = df.groupby(['airport', 'date', 'hour', 'vis_bin']).size().reset_index(name='count')
+    vis_3d['date'] = vis_3d['date'].astype(str)
     vis_3d.to_json(os.path.join(OUTPUT_DIR, "visibility_3d.json"), orient="records")
 
     # 16. RVR Sim Freq (Gráfica 14)
@@ -232,14 +237,16 @@ def generate_json_payloads(df):
         else: return '> 1500m'
         
     df['rvr_bin'] = df['visibility'].apply(rvr_bin)
-    rvr_3d = df.groupby(['airport', 'hour', 'rvr_bin']).size().reset_index(name='count')
+    rvr_3d = df.groupby(['airport', 'date', 'hour', 'rvr_bin']).size().reset_index(name='count')
+    rvr_3d['date'] = rvr_3d['date'].astype(str)
     rvr_3d.to_json(os.path.join(OUTPUT_DIR, "rvr_sim_3d.json"), orient="records")
 
     # 17. Temp Intervals (Gráfica 15)
     temp_bins = [-100, -10, -6, -1, 4, 9, 14, 19, 24, 29, 34, 40, 100]
     temp_labels = ['<-10ºC', '-10/-6', '-5/-1', '0/4', '5/9', '10/14', '15/19', '20/24', '25/29', '30/34', '35/40', '>40ºC']
     df['temp_bin'] = pd.cut(df['temperature'], bins=temp_bins, labels=temp_labels)
-    temp_stacked = df.groupby(['airport', 'hour', 'temp_bin'], observed=True).size().reset_index(name='count')
+    temp_stacked = df.groupby(['airport', 'date', 'hour', 'temp_bin'], observed=True).size().reset_index(name='count')
+    temp_stacked['date'] = temp_stacked['date'].astype(str)
     temp_stacked.to_json(os.path.join(OUTPUT_DIR, "temp_intervals_freq.json"), orient="records")
 
     # 18. Phenomena Macro Freq (Gráfica 16)
@@ -255,7 +262,8 @@ def generate_json_payloads(df):
         return 'Otros'
         
     df['phen_macro'] = df['phenomenon1'].apply(categorize_phen)
-    phen_macro_freq = df.groupby(['airport', 'phen_macro']).size().reset_index(name='count')
+    phen_macro_freq = df[df['phen_macro'] != 'Ninguno'].groupby(['airport', 'date', 'phen_macro']).size().reset_index(name='count')
+    phen_macro_freq['date'] = phen_macro_freq['date'].astype(str)
     phen_macro_freq.to_json(os.path.join(OUTPUT_DIR, "phenomena_macro_freq.json"), orient="records")
 
     print("Phase 3 JSON payloads generated successfully.")

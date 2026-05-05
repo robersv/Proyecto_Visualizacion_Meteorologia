@@ -18,7 +18,7 @@
     <style>
         .phenomena-container { display: flex; align-items: center; justify-content: center; gap: 2rem; width: 100%; }
         .data-table { border-collapse: collapse; width: 100%; font-size: 0.85rem; color: var(--text-secondary); background: var(--bg-main); border-radius: 8px; overflow: hidden;}
-        .data-table th, .data-table td { padding: 8px 12px; border-bottom: 1px solid var(--border-color); text-align: left; }
+        .data-table th, .data-table td { padding: 8px 12px; border-bottom: 1px solid var(--border-color); text-align: left; transition: background 0.3s; }
         .data-table th { background: rgba(255,255,255,0.05); font-weight: 600; color: var(--text-primary); }
         .multi-select { background: var(--bg-main); color: var(--text-primary); border: 1px solid var(--border-color); padding: 5px; height: 100px; border-radius: 6px; }
         .table-responsive { overflow-x: auto; width: 100%; }
@@ -100,11 +100,15 @@
             <div class="chart-grid-2">
                 <div class="chart-card">
                     <div class="chart-header">
-                        <h4>Gráfica 4: Incidencia de Baja Visibilidad (< 1000m)</h4>
-                        <p class="chart-desc">Porcentaje de periodos con baja visibilidad según nivel de tráfico operativo.</p>
+                        <h4>Gráfica 4: Análisis de Visibilidad vs Tráfico</h4>
+                        <p class="chart-desc">Alternativa A (Heatmap) y Alternativa B (Perfil de Área).</p>
                     </div>
                     <div class="filters">
                         <select id="vis-airport" class="airport-select"><option value="Todos">Consolidado (Todos)</option></select>
+                        <select id="vis-chart-type" class="airport-select">
+                            <option value="heatmap">Mapa de Calor (Mes vs Hora)</option>
+                            <option value="area">Perfil Diario de 24h</option>
+                        </select>
                     </div>
                     <div id="vis-traffic" class="chart-body"></div>
                 </div>
@@ -115,11 +119,7 @@
                     </div>
                     <div class="filters" style="display:flex; gap:10px;">
                         <select id="clouds-airport" class="airport-select"><option value="Todos">Consolidado (Todos)</option></select>
-                        <select id="clouds-months" class="multi-select" multiple>
-                            <option value="Enero" selected>Enero</option><option value="Febrero">Febrero</option>
-                            <option value="Marzo">Marzo</option><option value="Abril">Abril</option>
-                            <option value="Mayo">Mayo</option><option value="Junio">Junio</option>
-                        </select>
+                        <select id="clouds-months" class="multi-select" multiple></select>
                     </div>
                     <div id="cloud-amounts" class="chart-body"></div>
                 </div>
@@ -131,15 +131,10 @@
             <div class="chart-card full-width">
                 <div class="chart-header">
                     <h4>Gráfica 6: Evolución Diaria de Temperatura y Visibilidad</h4>
-                    <p class="chart-desc">Tendencias a lo largo de los días del mes. Selecciona múltiples meses para sobreponer líneas.</p>
+                    <p class="chart-desc">Tendencias temporales continuas. Cada línea representa un Aeropuerto.</p>
                 </div>
                 <div class="filters" style="display:flex; gap:10px;">
-                    <select id="evo-airport" class="airport-select"><option value="Todos">Consolidado (Todos)</option></select>
-                    <select id="evo-months" class="multi-select" multiple>
-                        <option value="Enero" selected>Enero</option>
-                        <option value="Julio" selected>Julio</option>
-                        <option value="Diciembre">Diciembre</option>
-                    </select>
+                    <select id="evo-months" class="multi-select" multiple></select>
                 </div>
                 <div id="monthly-evo" class="chart-body" style="height: 400px;"></div>
             </div>
@@ -147,10 +142,22 @@
             <div class="chart-card full-width" style="margin-top: 2rem;">
                 <div class="chart-header">
                     <h4>Gráfica 7: Modelo 3D de Condiciones de Niebla</h4>
-                    <p class="chart-desc">Interacción Temp vs Punto Rocío vs Visibilidad. Puntos de un color representan un mes seleccionado.</p>
+                    <p class="chart-desc">Interacción Temp vs Punto Rocío vs Visibilidad con agrupamiento dinámico.</p>
                 </div>
-                <div class="filters">
+                <div class="filters" style="display:flex; gap:10px; flex-wrap:wrap;">
                     <select id="scatter3d-airport" class="airport-select"><option value="Todos">Consolidado (Todos)</option></select>
+                    <input type="date" id="scatter3d-date-start" class="airport-select">
+                    <input type="date" id="scatter3d-date-end" class="airport-select">
+                    <input type="time" id="scatter3d-time-start" class="airport-select" value="00:00">
+                    <input type="time" id="scatter3d-time-end" class="airport-select" value="23:59">
+                    <select id="scatter3d-resolution" class="airport-select">
+                        <option value="30m">30 min (Crudo)</option>
+                        <option value="1h">1 Hora</option>
+                        <option value="3h">3 Horas</option>
+                        <option value="6h">6 Horas</option>
+                        <option value="12h">12 Horas</option>
+                        <option value="1d">1 Día</option>
+                    </select>
                 </div>
                 <div id="scatter-3d" class="chart-body" style="height: 600px;"></div>
             </div>
@@ -161,22 +168,25 @@
             <div class="chart-card full-width">
                 <div class="chart-header">
                     <h4>Gráfica 8: Perfil de Riesgo (Comparativa de Factores Críticos)</h4>
-                    <p class="chart-desc">Probabilidad normalizada (0-100%) de experimentar fenómenos críticos.</p>
+                    <p class="chart-desc">Calendario Heatmap (8A) vs Coordenadas Paralelas (8B).</p>
                 </div>
                 <div class="filters">
                     <select id="radar-airport" class="airport-select"><option value="Todos">Comparativa Global (Todos)</option></select>
+                    <select id="radar-chart-type" class="airport-select">
+                        <option value="heatmap">Calendario Heatmap Operativo</option>
+                        <option value="parcoords">Coordenadas Paralelas</option>
+                    </select>
                 </div>
                 <div id="radar-cond" class="chart-body" style="height: 500px;"></div>
             </div>
         </section>
 
-        <!-- PHASE 3 SECTIONS -->
         <section class="dashboard-section">
             <h3 class="section-title">6. Climatología y Fenómenos Macro</h3>
             <div class="chart-card full-width">
                 <div class="chart-header">
-                    <h4>Gráfica 9: Tabla Climatológica</h4>
-                    <p class="chart-desc">Resumen térmico, fenómenos y horas de sol (Fuente: AEMET).</p>
+                    <h4>Gráfica 9: Tabla Climatológica Semáforo</h4>
+                    <p class="chart-desc">Resumen térmico, fenómenos y horas de sol (Fuente: AEMET) con formato condicional de riesgo.</p>
                 </div>
                 <div class="filters">
                     <select id="climate-airport" class="airport-select"><option value="Todos">Todos</option></select>
@@ -197,11 +207,23 @@
 
             <div class="chart-card full-width" style="margin-top: 2rem;">
                 <div class="chart-header">
-                    <h4>Gráfica 16: Frecuencia de Fenómenos Significativos</h4>
-                    <p class="chart-desc">Frecuencia relativa (%) categorizada en macrogrupos.</p>
+                    <h4>Gráfica 16: Evolución Temporal de Fenómenos Significativos</h4>
+                    <p class="chart-desc">Serie de tiempo categorizada con agrupación dinámica.</p>
                 </div>
-                <div class="filters">
-                    <select id="macro-phen-airport" class="airport-select"><option value="Todos">Consolidado (Todos)</option></select>
+                <div class="filters" style="display:flex; gap:10px; flex-wrap:wrap;">
+                    <select id="macro-phen-airport" class="multi-select" multiple></select>
+                    <select id="macro-phen-type" class="airport-select">
+                        <option value="Precipitación">Precipitación</option>
+                        <option value="Tormenta">Tormenta</option>
+                        <option value="Visibilidad">Visibilidad (Niebla/Bruma)</option>
+                    </select>
+                    <input type="date" id="macro-phen-date-start" class="airport-select">
+                    <input type="date" id="macro-phen-date-end" class="airport-select">
+                    <select id="macro-phen-res" class="airport-select">
+                        <option value="day">Por Día</option>
+                        <option value="week">Por Semana</option>
+                        <option value="month">Por Mes</option>
+                    </select>
                 </div>
                 <div id="macro-phen-chart" class="chart-body" style="height: 400px;"></div>
             </div>
@@ -212,21 +234,25 @@
             <div class="chart-grid-2">
                 <div class="chart-card">
                     <div class="chart-header">
-                        <h4>Gráfica 10: Distribución Térmica Diaria</h4>
-                        <p class="chart-desc">Boxplot diario de temperaturas.</p>
+                        <h4>Gráfica 10: Pulso Térmico Horario</h4>
+                        <p class="chart-desc">Boxplot agrupado por las 24 horas del día.</p>
                     </div>
                     <div class="filters">
                         <select id="boxplot-airport" class="airport-select"><option value="Todos">Consolidado (Todos)</option></select>
+                        <input type="date" id="boxplot-date-start" class="airport-select">
+                        <input type="date" id="boxplot-date-end" class="airport-select">
                     </div>
                     <div id="temp-boxplot" class="chart-body"></div>
                 </div>
                 <div class="chart-card">
                     <div class="chart-header">
-                        <h4>Gráfica 15: Frecuencia Relativa de Intervalos de Temperatura</h4>
+                        <h4>Gráfica 15: Frecuencia Relativa de Intervalos Térmicos</h4>
                         <p class="chart-desc">Distribución porcentual térmica por horas del día (100% Stacked Bar).</p>
                     </div>
                     <div class="filters">
                         <select id="temp-stack-airport" class="airport-select"><option value="Todos">Consolidado (Todos)</option></select>
+                        <input type="date" id="temp-stack-date-start" class="airport-select">
+                        <input type="date" id="temp-stack-date-end" class="airport-select">
                     </div>
                     <div id="temp-stack-chart" class="chart-body"></div>
                 </div>
@@ -242,46 +268,34 @@
                 </div>
                 <div class="filters">
                     <select id="wind-dir-airport" class="airport-select"><option value="Todos">Consolidado (Todos)</option></select>
+                    <input type="date" id="wind-dir-date-start" class="airport-select">
+                    <input type="date" id="wind-dir-date-end" class="airport-select">
                 </div>
                 <div id="wind-dir-chart" class="chart-body" style="height: 500px;"></div>
             </div>
         </section>
 
         <section class="dashboard-section">
-            <h3 class="section-title">9. Modelos Tridimensionales Interactivos (GL)</h3>
+            <h3 class="section-title">9. Gran Visor Tridimensional Interactivo (GL)</h3>
             <p style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.9rem;">Interactúa arrastrando el ratón para rotar la cámara y explorar los intervalos superpuestos a distintas horas.</p>
             
             <div class="chart-card full-width">
                 <div class="chart-header">
-                    <h4>Gráfica 12: Modelo 3D de Techos de Nubes por Hora</h4>
-                    <p class="chart-desc">Frecuencia absoluta de techos de nubes organizados por tramos y horas del día.</p>
+                    <h4>Gráficas 12, 13 y 14: Entorno Operativo 3D</h4>
+                    <p class="chart-desc">Frecuencia absoluta organizada por tramos y horas del día. Selecciona la métrica a visualizar.</p>
                 </div>
-                <div class="filters">
-                    <select id="cloud3d-airport" class="airport-select"><option value="Todos">Consolidado (Todos)</option></select>
+                <div class="filters" style="display:flex; gap:10px; flex-wrap:wrap;">
+                    <select id="visor3d-metric" class="airport-select" style="background-color: var(--bg-main); border-color: #48CAE4;">
+                        <option value="clouds">Techos de Nubes</option>
+                        <option value="vis">Visibilidad General</option>
+                        <option value="rvr">Simulación Intervalos RVR</option>
+                    </select>
+                    <select id="visor3d-airport" class="airport-select"><option value="Todos">Consolidado (Todos)</option></select>
+                    <input type="date" id="visor3d-date-start" class="airport-select">
+                    <input type="date" id="visor3d-date-end" class="airport-select">
                 </div>
                 <!-- ECharts container -->
-                <div id="cloud-3d-gl" class="chart-body" style="height: 600px; width: 100%;"></div>
-            </div>
-
-            <div class="chart-grid-2" style="margin-top: 2rem;">
-                <div class="chart-card">
-                    <div class="chart-header">
-                        <h4>Gráfica 13: 3D Visibilidad General</h4>
-                    </div>
-                    <div class="filters">
-                        <select id="vis3d-airport" class="airport-select"><option value="Todos">Consolidado</option></select>
-                    </div>
-                    <div id="vis-3d-gl" class="chart-body" style="height: 500px; width: 100%;"></div>
-                </div>
-                <div class="chart-card">
-                    <div class="chart-header">
-                        <h4>Gráfica 14: Simulación Intervalos RVR</h4>
-                    </div>
-                    <div class="filters">
-                        <select id="rvr3d-airport" class="airport-select"><option value="Todos">Consolidado</option></select>
-                    </div>
-                    <div id="rvr-3d-gl" class="chart-body" style="height: 500px; width: 100%;"></div>
-                </div>
+                <div id="visor-3d-gl" class="chart-body" style="height: 600px; width: 100%;"></div>
             </div>
         </section>
 
