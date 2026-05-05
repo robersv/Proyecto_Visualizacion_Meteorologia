@@ -64,7 +64,7 @@ def process_all_airports():
     # Cleaning
     for col in ['visibility', 'temperature', 'dewPoint', 'knots', 'direction', 'height', 'maxKnots', 'gustyWind']:
         if col in final_df.columns:
-            final_df[col] = pd.to_numeric(final_df[col], errors='coerce')
+            final_df[col] = pd.to_numeric(final_df[col], errors='coerce').round(2)
             
     # Temporal attributes
     final_df['month'] = final_df['dateTime'].dt.month
@@ -96,7 +96,8 @@ def generate_json_payloads(df):
     wind_rose.to_json(os.path.join(OUTPUT_DIR, "wind_rose.json"), orient="records")
     
     # 4. Wind Gusts (Scatter)
-    gusts_data = df[df['maxKnots'] > 0][['airport', 'knots', 'maxKnots', 'volume_group']].dropna()
+    gusts_data = df[df['maxKnots'] > 0][['airport', 'date', 'hour', 'knots', 'maxKnots', 'volume_group']].dropna()
+    gusts_data['date'] = gusts_data['date'].astype(str)
     if len(gusts_data) > 10000: gusts_data = gusts_data.sample(10000)
     gusts_data.to_json(os.path.join(OUTPUT_DIR, "wind_gusts.json"), orient="records")
     
@@ -109,7 +110,7 @@ def generate_json_payloads(df):
     vis_traffic.to_json(os.path.join(OUTPUT_DIR, "visibility_vs_traffic.json"), orient="records")
     
     # 6. Cloud Amounts
-    cloud_amounts = df.groupby(['airport', 'month_name', 'day', 'amount'], observed=True).size().reset_index(name='count')
+    cloud_amounts = df.groupby(['airport', 'month_name', 'hour', 'amount'], observed=True).size().reset_index(name='count')
     cloud_amounts.to_json(os.path.join(OUTPUT_DIR, "cloud_amounts.json"), orient="records")
     
     # 7. Monthly Evolution
@@ -122,9 +123,10 @@ def generate_json_payloads(df):
 
     # 8. Phenomena Distribution
     phenomena_cols = ['phenomenon1', 'phenomenon2', 'phenomenon3']
-    all_phen = pd.melt(df, id_vars=['airport'], value_vars=phenomena_cols, value_name='phenomenon')
+    all_phen = pd.melt(df, id_vars=['airport', 'date'], value_vars=phenomena_cols, value_name='phenomenon')
     all_phen = all_phen.dropna(subset=['phenomenon'])
-    phen_dist = all_phen.groupby(['airport', 'phenomenon']).size().reset_index(name='count')
+    phen_dist = all_phen.groupby(['airport', 'date', 'phenomenon']).size().reset_index(name='count')
+    phen_dist['date'] = phen_dist['date'].astype(str)
     phen_dist.to_json(os.path.join(OUTPUT_DIR, "phenomena_distribution.json"), orient="records")
 
     # 9. Correlation Termodinámica -> 3D Scatter

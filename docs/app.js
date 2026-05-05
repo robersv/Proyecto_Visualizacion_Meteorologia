@@ -58,7 +58,7 @@ async function initDashboard() {
         ];
         
         allSelectors.forEach(id => {
-            if(id === 'climate-airport') populateSelect(id, airports, false);
+            if(id === 'climate-airport' || id === 'wind-rose-airport') populateSelect(id, airports, false);
             else populateSelect(id, airports);
         });
 
@@ -96,25 +96,36 @@ async function initDashboard() {
 
 // 1. Phenomena
 function plotPhenomenaDist(data) {
-    let total = 0; const agg = {};
-    data.forEach(d => { agg[d.phenomenon] = (agg[d.phenomenon] || 0) + d.count; total += d.count; });
-    const threshold = total * 0.10;
-    const grouped = { 'Otros': 0 };
-    const tableData = [];
-    for (const [phen, count] of Object.entries(agg)) {
-        tableData.push({ phen, count, pct: (count/total)*100 });
-        if (count < threshold) grouped['Otros'] += count;
-        else grouped[phen] = count;
-    }
-    tableData.sort((a,b) => b.count - a.count);
-    const tbody = document.querySelector('#phenomena-table tbody');
-    tableData.forEach(r => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${r.phen}</td><td>${r.count}</td><td>${r.pct.toFixed(2)}%</td>`;
-        tbody.appendChild(tr);
+    const selApt = document.getElementById('phenomena-airport');
+    const render = () => {
+        let d = dateFilter(data, 'phenomena-date-start', 'phenomena-date-end');
+        if(selApt.value !== 'Todos') d = d.filter(x => x.airport === selApt.value);
+
+        let total = 0; const agg = {};
+        d.forEach(r => { agg[r.phenomenon] = (agg[r.phenomenon] || 0) + Number(r.count); total += Number(r.count); });
+        const threshold = total * 0.10;
+        const grouped = { 'Otros': 0 };
+        const tableData = [];
+        for (const [phen, count] of Object.entries(agg)) {
+            tableData.push({ phen, count, pct: total > 0 ? (count/total)*100 : 0 });
+            if (count < threshold) grouped['Otros'] += count;
+            else grouped[phen] = count;
+        }
+        tableData.sort((a,b) => b.count - a.count);
+        const tbody = document.querySelector('#phenomena-table tbody');
+        tbody.innerHTML = '';
+        tableData.forEach(r => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${r.phen}</td><td>${r.count}</td><td>${r.pct.toFixed(2)}%</td>`;
+            tbody.appendChild(tr);
+        });
+        const trace = { labels: Object.keys(grouped), values: Object.values(grouped), type: 'pie', hole: 0.4, marker: { colors: ['#48CAE4', '#F7B801', '#D62828', '#979DAC'] } };
+        Plotly.newPlot('phenomena-dist', [trace], { ...layoutBase, margin: {t:10, b:10, l:10, r:10}}, {responsive: true});
+    };
+    ['phenomena-airport', 'phenomena-date-start', 'phenomena-date-end'].forEach(id => {
+        document.getElementById(id).addEventListener('change', render);
     });
-    const trace = { labels: Object.keys(grouped), values: Object.values(grouped), type: 'pie', hole: 0.4, marker: { colors: ['#48CAE4', '#F7B801', '#D62828', '#979DAC'] } };
-    Plotly.newPlot('phenomena-dist', [trace], { ...layoutBase, margin: {t:10, b:10, l:10, r:10}}, {responsive: true});
+    render();
 }
 
 // 2. Wind Rose
@@ -144,12 +155,19 @@ function setupWindRose(data) {
 function setupWindGusts(data) {
     const selApt = document.getElementById('gusts-airport');
     const render = () => {
-        let d = data;
+        let d = dateFilter(data, 'gusts-date-start', 'gusts-date-end');
         if(selApt.value !== 'Todos') d = d.filter(x => x.airport === selApt.value);
+        
+        const tStart = document.getElementById('gusts-time-start').value || "00:00";
+        const tEnd = document.getElementById('gusts-time-end').value || "23:59";
+        const hStart = parseInt(tStart.split(':')[0]);
+        const hEnd = parseInt(tEnd.split(':')[0]);
+        d = d.filter(x => x.hour >= hStart && x.hour <= hEnd);
+
         const traces = ['ALTA', 'MEDIA', 'BAJA'].map(lvl => {
             const sub = d.filter(r => r.volume_group === lvl);
             return {
-                x: sub.map(r => r.knots), y: sub.map(r => r.maxKnots),
+                x: sub.map(r => Number(r.knots)), y: sub.map(r => Number(r.maxKnots)),
                 mode: 'markers', type: 'scatter', name: lvl,
                 marker: { color: THEME.colors[lvl], size: 6, opacity: 0.6 }
             };
@@ -160,7 +178,10 @@ function setupWindGusts(data) {
             yaxis: { ...layoutBase.yaxis, title: 'Ráfaga Máxima (kt)', type: 'linear' }
         }, {responsive: true});
     };
-    selApt.addEventListener('change', render); render();
+    ['gusts-airport', 'gusts-date-start', 'gusts-date-end', 'gusts-time-start', 'gusts-time-end'].forEach(id => {
+        document.getElementById(id).addEventListener('change', render);
+    });
+    render();
 }
 
 // 4. Vis Traffic (Heatmap & Area)
@@ -168,7 +189,7 @@ function setupVisTraffic(data) {
     const selApt = document.getElementById('vis-airport');
     const selType = document.getElementById('vis-chart-type');
     const render = () => {
-        let d = data;
+        let d = dateFilter(data, 'vis-date-start', 'vis-date-end');
         if(selApt.value !== 'Todos') d = d.filter(x => x.airport === selApt.value);
         
         if (selType.value === 'heatmap') {
@@ -177,8 +198,8 @@ function setupVisTraffic(data) {
                 return hours.map(h => {
                     const recs = d.filter(x => x.month_name === m && x.hour === h && x.volume_group === 'ALTA');
                     if(recs.length === 0) return 0;
-                    const tot = recs.reduce((s, r) => s + r.total, 0);
-                    const low = recs.reduce((s, r) => s + r.low_vis_count, 0);
+                    const tot = recs.reduce((s, r) => s + Number(r.total), 0);
+                    const low = recs.reduce((s, r) => s + Number(r.low_vis_count), 0);
                     return tot > 0 ? (low/tot)*100 : 0;
                 });
             });
@@ -188,10 +209,10 @@ function setupVisTraffic(data) {
         } else {
             const hours = [...Array(24).keys()];
             const yTraffic = hours.map(h => {
-                return d.filter(x => x.hour === h && x.volume_group === 'ALTA').reduce((s, r) => s + r.total, 0);
+                return d.filter(x => x.hour === h && x.volume_group === 'ALTA').reduce((s, r) => s + Number(r.total), 0);
             });
             const yLowVis = hours.map(h => {
-                return d.filter(x => x.hour === h && x.volume_group === 'ALTA').reduce((s, r) => s + r.low_vis_count, 0);
+                return d.filter(x => x.hour === h && x.volume_group === 'ALTA').reduce((s, r) => s + Number(r.low_vis_count), 0);
             });
             Plotly.newPlot('vis-traffic', [
                 { x: hours.map(h=>h+'h'), y: yTraffic, name: 'Vuelos ALTA', type: 'scatter', fill: 'tozeroy', marker: {color: '#979DAC'} },
@@ -199,7 +220,10 @@ function setupVisTraffic(data) {
             ], { ...layoutBase, title: 'Perfil Diario 24h (Tráfico ALTO)' }, {responsive: true});
         }
     };
-    selApt.addEventListener('change', render); selType.addEventListener('change', render); render();
+    ['vis-airport', 'vis-chart-type', 'vis-date-start', 'vis-date-end'].forEach(id => {
+        document.getElementById(id).addEventListener('change', render);
+    });
+    render();
 }
 
 // 5. Cloud Amounts
@@ -212,14 +236,14 @@ function setupCloudAmounts(data) {
         const selectedMonths = Array.from(selMonths.selectedOptions).map(opt => opt.value);
         const traces = selectedMonths.map(month => {
             const sub = d.filter(x => x.month_name === month);
-            const days = [...Array(31).keys()].map(i => i+1);
+            const hours = [...Array(24).keys()];
             return {
-                x: days,
-                y: days.map(day => sub.filter(x => x.day === day).reduce((sum, r) => sum + r.count, 0)),
+                x: hours.map(h => h + 'h'),
+                y: hours.map(h => sub.filter(x => x.hour === h).reduce((sum, r) => sum + Number(r.count), 0)),
                 type: 'bar', name: month
             };
         });
-        Plotly.newPlot('cloud-amounts', traces, { ...layoutBase, barmode: 'group', xaxis: { ...layoutBase.xaxis, title: 'Día del Mes' } }, {responsive: true});
+        Plotly.newPlot('cloud-amounts', traces, { ...layoutBase, barmode: 'group', xaxis: { ...layoutBase.xaxis, title: 'Hora del Día' } }, {responsive: true});
     };
     selApt.addEventListener('change', render); selMonths.addEventListener('change', render); render();
 }
@@ -227,27 +251,29 @@ function setupCloudAmounts(data) {
 // 6. Monthly Evo (Continuous Line by Airport)
 function setupMonthlyEvo(data) {
     const selMonths = document.getElementById('evo-months');
+    const selApt = document.getElementById('evo-airport');
     const render = () => {
         let d = data;
+        if(selApt.value !== 'Todos') d = d.filter(x => x.airport === selApt.value);
         const selectedMonths = Array.from(selMonths.selectedOptions).map(opt => opt.value);
-        // Filter by selected months
-        // Note: The new monthly_evo data has 'date', but we need to know the month.
-        // We can parse month from 'date' (YYYY-MM-DD).
+        
         d = d.filter(x => {
             const m = parseInt(x.date.split('-')[1]);
             return selectedMonths.includes(MONTH_NAMES[m-1]);
         });
-        // Sort by date
         d.sort((a,b) => new Date(a.date) - new Date(b.date));
         
         const airports = [...new Set(d.map(x => x.airport))];
         const traces = airports.map(apt => {
             const sub = d.filter(x => x.airport === apt);
-            return { x: sub.map(x => x.date), y: sub.map(x => x.visibility), type: 'scatter', mode: 'lines', name: apt };
+            return { x: sub.map(x => x.date), y: sub.map(x => Number(x.visibility)), type: 'scatter', mode: 'lines', name: apt };
         });
-        Plotly.newPlot('monthly-evo', traces, { ...layoutBase, xaxis: { ...layoutBase.xaxis, title: 'Fecha Continua' }, yaxis: { ...layoutBase.yaxis, title: 'Visibilidad Promedio (m)' } }, {responsive: true});
+        Plotly.newPlot('monthly-evo', traces, { ...layoutBase, margin: { ...layoutBase.margin, l: 80 }, xaxis: { ...layoutBase.xaxis, title: 'Fecha Continua' }, yaxis: { ...layoutBase.yaxis, title: 'Visibilidad Promedio (m)' } }, {responsive: true});
     };
-    selMonths.addEventListener('change', render); render();
+    ['evo-months', 'evo-airport'].forEach(id => {
+        document.getElementById(id).addEventListener('change', render);
+    });
+    render();
 }
 
 // 7. Scatter 3D

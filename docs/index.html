@@ -50,6 +50,11 @@
                     <h4>Gráfica 1: Fenómenos Meteorológicos Frecuentes</h4>
                     <p class="chart-desc">Distribución porcentual. Se agrupan eventos menores al 10% en "Otros". (Consolidado Nacional)</p>
                 </div>
+                <div class="filters">
+                    <select id="phenomena-airport" class="airport-select"><option value="Todos">Consolidado (Todos)</option></select>
+                    <input type="date" id="phenomena-date-start" class="airport-select">
+                    <input type="date" id="phenomena-date-end" class="airport-select">
+                </div>
                 <div class="phenomena-container">
                     <div id="phenomena-dist" style="width: 55%; height: 400px;"></div>
                     <div style="width: 40%;">
@@ -87,8 +92,12 @@
                         <h4>Gráfica 3: Dispersión de Ráfagas (Knots)</h4>
                         <p class="chart-desc">Relación entre la velocidad sostenida y ráfagas máximas según tráfico.</p>
                     </div>
-                    <div class="filters">
+                    <div class="filters" style="display:flex; gap:10px; flex-wrap:wrap;">
                         <select id="gusts-airport" class="airport-select"><option value="Todos">Consolidado (Todos)</option></select>
+                        <input type="date" id="gusts-date-start" class="airport-select">
+                        <input type="date" id="gusts-date-end" class="airport-select">
+                        <input type="time" id="gusts-time-start" class="airport-select" value="00:00">
+                        <input type="time" id="gusts-time-end" class="airport-select" value="23:59">
                     </div>
                     <div id="wind-gusts" class="chart-body"></div>
                 </div>
@@ -103,19 +112,22 @@
                         <h4>Gráfica 4: Análisis de Visibilidad vs Tráfico</h4>
                         <p class="chart-desc">Alternativa A (Heatmap) y Alternativa B (Perfil de Área).</p>
                     </div>
-                    <div class="filters">
+                    <div class="filters" style="display:flex; gap:10px; flex-wrap:wrap;">
                         <select id="vis-airport" class="airport-select"><option value="Todos">Consolidado (Todos)</option></select>
                         <select id="vis-chart-type" class="airport-select">
                             <option value="heatmap">Mapa de Calor (Mes vs Hora)</option>
                             <option value="area">Perfil Diario de 24h</option>
                         </select>
+                        <input type="date" id="vis-date-start" class="airport-select">
+                        <input type="date" id="vis-date-end" class="airport-select">
                     </div>
+
                     <div id="vis-traffic" class="chart-body"></div>
                 </div>
                 <div class="chart-card">
                     <div class="chart-header">
                         <h4>Gráfica 5: Evolución Diaria de Cobertura Nubosa</h4>
-                        <p class="chart-desc">Cantidad de reportes de nubes por día del mes. Selecciona meses para comparar.</p>
+                        <p class="chart-desc">Cantidad de reportes de nubes por hora del día. Selecciona meses para comparar.</p>
                     </div>
                     <div class="filters" style="display:flex; gap:10px;">
                         <select id="clouds-airport" class="airport-select"><option value="Todos">Consolidado (Todos)</option></select>
@@ -134,6 +146,7 @@
                     <p class="chart-desc">Tendencias temporales continuas. Cada línea representa un Aeropuerto.</p>
                 </div>
                 <div class="filters" style="display:flex; gap:10px;">
+                    <select id="evo-airport" class="airport-select"><option value="Todos">Consolidado (Todos)</option></select>
                     <select id="evo-months" class="multi-select" multiple></select>
                 </div>
                 <div id="monthly-evo" class="chart-body" style="height: 400px;"></div>
