@@ -273,7 +273,7 @@ def generate_json_payloads(df):
             return 'Precipitación'
         return 'Otros'
         
-    df['phen_combined'] = df['phenomenon1'].fillna('') + ' ' + df['phenomenon2'].fillna('') + ' ' + df['phenomenon3'].fillna('')
+    df['phen_combined'] = df['characteristic'].fillna('') + ' ' + df['phenomenon1'].fillna('') + ' ' + df['phenomenon2'].fillna('') + ' ' + df['phenomenon3'].fillna('')
     df['phen_macro'] = df['phen_combined'].apply(categorize_phen)
     phen_macro_freq = df.groupby(['airport', 'date', 'phen_macro']).agg({'duration_hours': 'sum'}).reset_index()
     phen_macro_freq.rename(columns={'duration_hours': 'count'}, inplace=True)

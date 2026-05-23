@@ -47,7 +47,7 @@ async function initDashboard() {
             loadData('wind_gusts.json'), loadData('3d_scatter_data.json'),
             loadData('climatological_summary.json'), loadData('hourly_temperature.json'), loadData('wind_direction_freq.json'),
             loadData('cloud_base_3d.json'), loadData('visibility_3d.json'), loadData('rvr_sim_3d.json'),
-            loadData('temp_intervals_freq.json'), loadData('phenomena_macro_freq.json')
+            loadData('temp_intervals_freq.json'), fetch('data/phenomena_macro_freq.json?v=8').then(r => r.json())
         ]);
 
         const airports = [...new Set(phenData.map(d => d.airport))].sort();
