@@ -535,7 +535,7 @@ function setupMacroPhen(data) {
             return { x: xKeys, y: xKeys.map(k => grouped[k] || 0), type: 'bar', name: apt };
         });
 
-        Plotly.newPlot('macro-phen-chart', traces, { ...layoutBase, barmode: 'group', yaxis: { ...layoutBase.yaxis, title: 'Frecuencia' } }, {responsive: true});
+        Plotly.newPlot('macro-phen-chart', traces, { ...layoutBase, barmode: 'group', yaxis: { ...layoutBase.yaxis, title: 'Frecuencia', type: 'linear' } }, {responsive: true});
     };
     ['macro-phen-airport', 'macro-phen-type', 'macro-phen-date-start', 'macro-phen-date-end', 'macro-phen-res'].forEach(id => {
         document.getElementById(id).addEventListener('change', render);
