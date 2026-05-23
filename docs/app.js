@@ -54,7 +54,7 @@ async function initDashboard() {
         const allSelectors = [
             'wind-rose-airport', 'gusts-airport', 'vis-airport', 'clouds-airport', 
             'scatter3d-airport', 'radar-airport', 'climate-airport', 'boxplot-airport',
-            'temp-stack-airport', 'wind-dir-airport', 'visor3d-airport'
+            'temp-stack-airport', 'wind-dir-airport', 'visor3d-airport', 'evo-airport'
         ];
         
         allSelectors.forEach(id => {
@@ -62,13 +62,34 @@ async function initDashboard() {
             else populateSelect(id, airports);
         });
 
+        // Populate Time Dropdowns
+        const timeSelectors = ['gusts-time-start', 'gusts-time-end', 'scatter3d-time-start', 'scatter3d-time-end', 'radar-time-start', 'radar-time-end'];
+        timeSelectors.forEach(id => {
+            const el = document.getElementById(id);
+            if(el) {
+                for(let i=0; i<24; i++) {
+                    const opt = document.createElement('option');
+                    opt.value = i;
+                    opt.textContent = i.toString().padStart(2, '0') + ':00';
+                    el.appendChild(opt);
+                }
+                if(id.includes('end')) el.value = 23;
+            }
+        });
+
         // Multiselectors
+        populateSelect('phenomena-airport', airports, false);
+        populateSelect('wind-rose-months', MONTH_NAMES, false);
         populateSelect('phenomena-months', MONTH_NAMES, false);
         populateSelect('evo-months', MONTH_NAMES, false);
         populateSelect('clouds-months', MONTH_NAMES, false);
         populateSelect('macro-phen-airport', airports, false);
 
         // Pre-select some multiselects
+        const phenA = document.getElementById('phenomena-airport');
+        if(phenA && phenA.options.length > 0) phenA.options[0].selected = true;
+        const wrM = document.getElementById('wind-rose-months');
+        if(wrM && wrM.options.length > 0) wrM.options[0].selected = true;
         const phenM = document.getElementById('phenomena-months');
         if(phenM && phenM.options.length > 0) phenM.options[0].selected = true;
         const evoM = document.getElementById('evo-months');
@@ -103,7 +124,10 @@ function plotPhenomenaDist(data) {
     const selMonths = document.getElementById('phenomena-months');
     const render = () => {
         let d = data;
-        if(selApt.value !== 'Todos') d = d.filter(x => x.airport === selApt.value);
+        const selectedApts = Array.from(selApt.selectedOptions).map(opt => opt.value);
+        if (selectedApts.length > 0) {
+            d = d.filter(x => selectedApts.includes(x.airport));
+        }
 
         const selectedMonths = Array.from(selMonths.selectedOptions).map(opt => opt.value);
         if (selectedMonths.length > 0) {
@@ -144,11 +168,14 @@ function plotPhenomenaDist(data) {
 // 2. Wind Rose
 function setupWindRose(data) {
     const selApt = document.getElementById('wind-rose-airport');
-    const selSeason = document.getElementById('wind-rose-season');
+    const selMonths = document.getElementById('wind-rose-months');
     const render = () => {
         let d = data;
         if(selApt.value !== 'Todos') d = d.filter(x => x.airport === selApt.value);
-        if(selSeason.value !== 'Todos') d = d.filter(x => x.season === selSeason.value);
+        const selectedMonths = Array.from(selMonths.selectedOptions).map(opt => opt.value);
+        if (selectedMonths.length > 0) {
+            d = d.filter(x => selectedMonths.includes(x.month_name));
+        }
         const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
         const speeds = ['0-5', '5-10', '10-15', '15-20', '20+'];
         const colorScale = ['#90E0EF', '#48CAE4', '#00B4D8', '#0077B6', '#03045E'];
@@ -160,7 +187,7 @@ function setupWindRose(data) {
         });
         Plotly.newPlot('wind-rose', traces, { ...layoutBase, polar: { angularaxis: { color: THEME.text_secondary }, bgcolor: THEME.bg_card } }, {responsive: true});
     };
-    selApt.addEventListener('change', render); selSeason.addEventListener('change', render);
+    selApt.addEventListener('change', render); selMonths.addEventListener('change', render);
     render();
 }
 
@@ -171,23 +198,20 @@ function setupWindGusts(data) {
         let d = dateFilter(data, 'gusts-date-start', 'gusts-date-end');
         if(selApt.value !== 'Todos') d = d.filter(x => x.airport === selApt.value);
         
-        const tStart = document.getElementById('gusts-time-start').value || "00:00";
-        const tEnd = document.getElementById('gusts-time-end').value || "23:59";
-        const hStart = parseInt(tStart.split(':')[0]);
-        const hEnd = parseInt(tEnd.split(':')[0]);
+        const hStart = parseInt(document.getElementById('gusts-time-start').value || "0");
+        const hEnd = parseInt(document.getElementById('gusts-time-end').value || "23");
         d = d.filter(x => x.hour >= hStart && x.hour <= hEnd);
 
         const traces = ['ALTA', 'MEDIA', 'BAJA'].map(lvl => {
             const sub = d.filter(r => r.volume_group === lvl);
             return {
-                x: sub.map(r => Number(r.knots)), y: sub.map(r => Number(r.maxKnots)),
+                x: sub.map(r => Number(r.hour)), y: sub.map(r => Number(r.maxKnots)),
                 mode: 'markers', type: 'scatter', name: lvl,
                 marker: { color: THEME.colors[lvl], size: 6, opacity: 0.6 }
             };
         });
-        // PHASE 4: Added type: 'linear' to prevent categorical sorting
         Plotly.newPlot('wind-gusts', traces, {
-            ...layoutBase, xaxis: { ...layoutBase.xaxis, title: 'Viento Sostenido (kt)', type: 'linear' },
+            ...layoutBase, xaxis: { ...layoutBase.xaxis, title: 'Hora del Día (00-23h)', type: 'linear' },
             yaxis: { ...layoutBase.yaxis, title: 'Ráfaga Máxima (kt)', type: 'linear' }
         }, {responsive: true});
     };
@@ -230,7 +254,7 @@ function setupVisTraffic(data) {
             Plotly.newPlot('vis-traffic', [
                 { x: hours.map(h=>h+'h'), y: yTraffic, name: 'Vuelos ALTA', type: 'scatter', fill: 'tozeroy', marker: {color: '#979DAC'} },
                 { x: hours.map(h=>h+'h'), y: yLowVis, name: 'Reportes Baja Vis', type: 'scatter', fill: 'tozeroy', marker: {color: '#D62828'} }
-            ], { ...layoutBase, title: 'Perfil Diario 24h (Tráfico ALTO)' }, {responsive: true});
+            ], { ...layoutBase, title: 'Perfil Diario 24h (Tráfico ALTO)', yaxis: { ...layoutBase.yaxis, type: 'linear', title: 'Conteos' } }, {responsive: true});
         }
     };
     ['vis-airport', 'vis-chart-type', 'vis-date-start', 'vis-date-end'].forEach(id => {
@@ -277,11 +301,33 @@ function setupMonthlyEvo(data) {
         d.sort((a,b) => new Date(a.date) - new Date(b.date));
         
         const airports = [...new Set(d.map(x => x.airport))];
-        const traces = airports.map(apt => {
+        const hours = [...Array(24).keys()];
+        const traces = [];
+        
+        airports.forEach(apt => {
             const sub = d.filter(x => x.airport === apt);
-            return { x: sub.map(x => x.date), y: sub.map(x => Number(x.visibility)), type: 'scatter', mode: 'lines', name: apt };
+            const yVis = hours.map(h => {
+                const recs = sub.filter(x => x.hour === h);
+                return recs.length ? recs.reduce((s, r) => s + Number(r.visibility), 0) / recs.length / 1000 : 0;
+            });
+            traces.push({ x: hours.map(h=>h+'h'), y: yVis.map(v => Number(v.toFixed(0))), type: 'scatter', mode: 'lines', name: apt + ' Vis(km)', yaxis: 'y1' });
         });
-        Plotly.newPlot('monthly-evo', traces, { ...layoutBase, margin: { ...layoutBase.margin, l: 80 }, xaxis: { ...layoutBase.xaxis, title: 'Fecha Continua' }, yaxis: { ...layoutBase.yaxis, title: 'Visibilidad Promedio (m)' } }, {responsive: true});
+        
+        airports.forEach(apt => {
+            const sub = d.filter(x => x.airport === apt);
+            const yTemp = hours.map(h => {
+                const recs = sub.filter(x => x.hour === h);
+                return recs.length ? recs.reduce((s, r) => s + Number(r.temperature), 0) / recs.length : 0;
+            });
+            traces.push({ x: hours.map(h=>h+'h'), y: yTemp.map(t => Number(t.toFixed(1))), type: 'scatter', mode: 'lines', name: apt + ' Temp(ºC)', yaxis: 'y2', line: {dash: 'dot'} });
+        });
+
+        Plotly.newPlot('monthly-evo', traces, { 
+            ...layoutBase, margin: { ...layoutBase.margin, l: 60, r: 60 }, 
+            xaxis: { ...layoutBase.xaxis, title: 'Hora del Día (00-23h)' }, 
+            yaxis: { ...layoutBase.yaxis, title: 'Visibilidad (km)', side: 'left' },
+            yaxis2: { ...layoutBase.yaxis, title: 'Temperatura (ºC)', side: 'right', overlaying: 'y' }
+        }, {responsive: true});
     };
     ['evo-months', 'evo-airport'].forEach(id => {
         document.getElementById(id).addEventListener('change', render);
@@ -299,10 +345,8 @@ function setupScatter3D(data) {
         if(selApt.value !== 'Todos') d = d.filter(x => x.airport === selApt.value);
         
         // Filter by hour range
-        const tStart = document.getElementById('scatter3d-time-start').value || "00:00";
-        const tEnd = document.getElementById('scatter3d-time-end').value || "23:59";
-        const hStart = parseInt(tStart.split(':')[0]);
-        const hEnd = parseInt(tEnd.split(':')[0]);
+        const hStart = parseInt(document.getElementById('scatter3d-time-start').value || "0");
+        const hEnd = parseInt(document.getElementById('scatter3d-time-end').value || "23");
         d = d.filter(x => x.hour >= hStart && x.hour <= hEnd);
 
         // Group by resolution
@@ -325,12 +369,15 @@ function setupScatter3D(data) {
             d = Object.keys(grouped).map(k => ({
                 temperature: grouped[k].t / grouped[k].c,
                 dewPoint: grouped[k].d / grouped[k].c,
-                visibility: grouped[k].v / grouped[k].c
+                visibility: grouped[k].v / grouped[k].c,
+                hourStr: k.split('_').length > 1 ? k.split('_')[1] : 'Promedio Diario'
             }));
         }
 
         const trace = {
             x: d.map(x => x.temperature), y: d.map(x => x.dewPoint), z: d.map(x => x.visibility),
+            text: d.map(x => `Hora: ${x.hourStr || x.hour+'h'}<br>Temp: ${x.temperature.toFixed(1)}ºC<br>DewPt: ${x.dewPoint.toFixed(1)}ºC<br>Vis: ${x.visibility.toFixed(0)}m`),
+            hovertemplate: '%{text}<extra></extra>',
             mode: 'markers', type: 'scatter3d', marker: { size: 3, opacity: 0.8, color: d.map(x => x.visibility), colorscale: 'Viridis' }
         };
         Plotly.newPlot('scatter-3d', [trace], { ...layoutBase, margin: {l:0, r:0, b:0, t:0}, scene: { xaxis: { title: 'Temp (C)' }, yaxis: { title: 'Dew Pt (C)' }, zaxis: { title: 'Visibility (m)' }, bgcolor: THEME.bg_main } }, {responsive: true});
@@ -346,8 +393,12 @@ function setupRadarCond(data) {
     const selApt = document.getElementById('radar-airport');
     const selType = document.getElementById('radar-chart-type');
     const render = () => {
-        let d = data;
+        let d = dateFilter(data, 'radar-date-start', 'radar-date-end');
         if (selApt.value !== 'Todos') d = d.filter(x => x.airport === selApt.value);
+        
+        const hStart = parseInt(document.getElementById('radar-time-start').value || "0");
+        const hEnd = parseInt(document.getElementById('radar-time-end').value || "23");
+        d = d.filter(x => x.hour >= hStart && x.hour <= hEnd);
         
         if (selType.value === 'heatmap') {
             // Composite Risk Index (0 to 1)
@@ -372,7 +423,10 @@ function setupRadarCond(data) {
             }], { ...layoutBase, margin: {t: 50, b: 20} }, {responsive: true});
         }
     };
-    selApt.addEventListener('change', render); selType.addEventListener('change', render); render();
+    ['radar-airport', 'radar-chart-type', 'radar-date-start', 'radar-date-end', 'radar-time-start', 'radar-time-end'].forEach(id => {
+        document.getElementById(id).addEventListener('change', render);
+    });
+    render();
 }
 
 // 9. Climate Table

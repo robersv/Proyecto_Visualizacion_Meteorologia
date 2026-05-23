@@ -92,7 +92,7 @@ def generate_json_payloads(df):
     speed_labels = ['0-5', '5-10', '10-15', '15-20', '20+']
     df['wind_speed_cat'] = pd.cut(df['knots'], bins=speed_bins, labels=speed_labels, include_lowest=True)
     
-    wind_rose = df.groupby(['airport', 'season', 'wind_dir_cat', 'wind_speed_cat'], observed=True).size().reset_index(name='count')
+    wind_rose = df.groupby(['airport', 'month_name', 'wind_dir_cat', 'wind_speed_cat'], observed=True).size().reset_index(name='count')
     wind_rose.to_json(os.path.join(OUTPUT_DIR, "wind_rose.json"), orient="records")
     
     # 4. Wind Gusts (Scatter)
@@ -114,7 +114,7 @@ def generate_json_payloads(df):
     cloud_amounts.to_json(os.path.join(OUTPUT_DIR, "cloud_amounts.json"), orient="records")
     
     # 7. Monthly Evolution
-    monthly_evo = df.groupby(['airport', 'date'], observed=True).agg({
+    monthly_evo = df.groupby(['airport', 'date', 'hour'], observed=True).agg({
         'temperature': 'mean',
         'visibility': 'mean'
     }).reset_index()
@@ -140,7 +140,7 @@ def generate_json_payloads(df):
     df['is_low_ceiling'] = df['height'] < 500
     df['has_rain'] = df['phenomenon1'].str.contains('Lluvia', case=False, na=False) | df['phenomenon1'].str.contains('RA', na=False)
     df['has_fog'] = df['phenomenon1'].str.contains('Niebla', case=False, na=False) | df['phenomenon1'].str.contains('FG', na=False)
-    radar_cond = df.groupby(['airport', 'date']).agg({
+    radar_cond = df.groupby(['airport', 'date', 'hour']).agg({
         'is_low_vis': 'mean', 'is_high_wind': 'mean', 'is_low_ceiling': 'mean',
         'has_rain': 'mean', 'has_fog': 'mean'
     }).reset_index()

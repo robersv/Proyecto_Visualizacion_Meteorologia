@@ -51,7 +51,7 @@
                     <p class="chart-desc">Distribución porcentual. Se agrupan eventos menores al 10% en "Otros". (Consolidado Nacional)</p>
                 </div>
                 <div class="filters" style="display:flex; gap:10px;">
-                    <select id="phenomena-airport" class="airport-select"><option value="Todos">Consolidado (Todos)</option></select>
+                    <select id="phenomena-airport" class="multi-select" multiple></select>
                     <select id="phenomena-months" class="multi-select" multiple></select>
                 </div>
                 <div class="phenomena-container">
@@ -76,13 +76,7 @@
                     </div>
                     <div class="filters">
                         <select id="wind-rose-airport" class="airport-select"><option value="Todos">Consolidado (Todos)</option></select>
-                        <select id="wind-rose-season" class="airport-select">
-                            <option value="Todos">Todo el Año</option>
-                            <option value="DJF (Invierno)">Invierno (DJF)</option>
-                            <option value="MAM (Primavera)">Primavera (MAM)</option>
-                            <option value="JJA (Verano)">Verano (JJA)</option>
-                            <option value="SON (Otoño)">Otoño (SON)</option>
-                        </select>
+                        <select id="wind-rose-months" class="multi-select" multiple></select>
                     </div>
                     <div id="wind-rose" class="chart-body"></div>
                 </div>
@@ -93,10 +87,10 @@
                     </div>
                     <div class="filters" style="display:flex; gap:10px; flex-wrap:wrap;">
                         <select id="gusts-airport" class="airport-select"><option value="Todos">Consolidado (Todos)</option></select>
-                        <input type="date" id="gusts-date-start" class="airport-select">
-                        <input type="date" id="gusts-date-end" class="airport-select">
-                        <input type="time" id="gusts-time-start" class="airport-select" value="00:00">
-                        <input type="time" id="gusts-time-end" class="airport-select" value="23:59">
+                        <input type="date" id="gusts-date-start" class="airport-select" value="2019-01-01">
+                        <input type="date" id="gusts-date-end" class="airport-select" value="2019-12-31">
+                        <select id="gusts-time-start" class="airport-select"></select>
+                        <select id="gusts-time-end" class="airport-select"></select>
                     </div>
                     <div id="wind-gusts" class="chart-body"></div>
                 </div>
@@ -114,11 +108,11 @@
                     <div class="filters" style="display:flex; gap:10px; flex-wrap:wrap;">
                         <select id="vis-airport" class="airport-select"><option value="Todos">Consolidado (Todos)</option></select>
                         <select id="vis-chart-type" class="airport-select">
-                            <option value="heatmap">Mapa de Calor (Mes vs Hora)</option>
+                        <option value="heatmap">Mapa de Calor (Mes vs Hora)</option>
                             <option value="area">Perfil Diario de 24h</option>
                         </select>
-                        <input type="date" id="vis-date-start" class="airport-select">
-                        <input type="date" id="vis-date-end" class="airport-select">
+                        <input type="date" id="vis-date-start" class="airport-select" value="2019-01-01">
+                        <input type="date" id="vis-date-end" class="airport-select" value="2019-12-31">
                     </div>
 
                     <div id="vis-traffic" class="chart-body"></div>
@@ -158,10 +152,10 @@
                 </div>
                 <div class="filters" style="display:flex; gap:10px; flex-wrap:wrap;">
                     <select id="scatter3d-airport" class="airport-select"><option value="Todos">Consolidado (Todos)</option></select>
-                    <input type="date" id="scatter3d-date-start" class="airport-select">
-                    <input type="date" id="scatter3d-date-end" class="airport-select">
-                    <input type="time" id="scatter3d-time-start" class="airport-select" value="00:00">
-                    <input type="time" id="scatter3d-time-end" class="airport-select" value="23:59">
+                    <input type="date" id="scatter3d-date-start" class="airport-select" value="2019-01-01">
+                    <input type="date" id="scatter3d-date-end" class="airport-select" value="2019-12-31">
+                    <select id="scatter3d-time-start" class="airport-select"></select>
+                    <select id="scatter3d-time-end" class="airport-select"></select>
                     <select id="scatter3d-resolution" class="airport-select">
                         <option value="30m">30 min (Crudo)</option>
                         <option value="1h">1 Hora</option>
@@ -182,12 +176,16 @@
                     <h4>Gráfica 8: Perfil de Riesgo (Comparativa de Factores Críticos)</h4>
                     <p class="chart-desc">Calendario Heatmap (8A) vs Coordenadas Paralelas (8B).</p>
                 </div>
-                <div class="filters">
+                <div class="filters" style="display:flex; gap:10px; flex-wrap:wrap;">
                     <select id="radar-airport" class="airport-select"><option value="Todos">Comparativa Global (Todos)</option></select>
                     <select id="radar-chart-type" class="airport-select">
                         <option value="heatmap">Calendario Heatmap Operativo</option>
                         <option value="parcoords">Coordenadas Paralelas</option>
                     </select>
+                    <input type="date" id="radar-date-start" class="airport-select" value="2019-01-01">
+                    <input type="date" id="radar-date-end" class="airport-select" value="2019-12-31">
+                    <select id="radar-time-start" class="airport-select"></select>
+                    <select id="radar-time-end" class="airport-select"></select>
                 </div>
                 <div id="radar-cond" class="chart-body" style="height: 500px;"></div>
             </div>
@@ -229,8 +227,8 @@
                         <option value="Tormenta">Tormenta</option>
                         <option value="Visibilidad">Visibilidad (Niebla/Bruma)</option>
                     </select>
-                    <input type="date" id="macro-phen-date-start" class="airport-select">
-                    <input type="date" id="macro-phen-date-end" class="airport-select">
+                    <input type="date" id="macro-phen-date-start" class="airport-select" value="2019-01-01">
+                    <input type="date" id="macro-phen-date-end" class="airport-select" value="2019-12-31">
                     <select id="macro-phen-res" class="airport-select">
                         <option value="day">Por Día</option>
                         <option value="week">Por Semana</option>
@@ -251,8 +249,8 @@
                     </div>
                     <div class="filters">
                         <select id="boxplot-airport" class="airport-select"><option value="Todos">Consolidado (Todos)</option></select>
-                        <input type="date" id="boxplot-date-start" class="airport-select">
-                        <input type="date" id="boxplot-date-end" class="airport-select">
+                        <input type="date" id="boxplot-date-start" class="airport-select" value="2019-01-01">
+                        <input type="date" id="boxplot-date-end" class="airport-select" value="2019-12-31">
                     </div>
                     <div id="temp-boxplot" class="chart-body"></div>
                 </div>
@@ -263,8 +261,8 @@
                     </div>
                     <div class="filters">
                         <select id="temp-stack-airport" class="airport-select"><option value="Todos">Consolidado (Todos)</option></select>
-                        <input type="date" id="temp-stack-date-start" class="airport-select">
-                        <input type="date" id="temp-stack-date-end" class="airport-select">
+                        <input type="date" id="temp-stack-date-start" class="airport-select" value="2019-01-01">
+                        <input type="date" id="temp-stack-date-end" class="airport-select" value="2019-12-31">
                     </div>
                     <div id="temp-stack-chart" class="chart-body"></div>
                 </div>
@@ -280,8 +278,8 @@
                 </div>
                 <div class="filters">
                     <select id="wind-dir-airport" class="airport-select"><option value="Todos">Consolidado (Todos)</option></select>
-                    <input type="date" id="wind-dir-date-start" class="airport-select">
-                    <input type="date" id="wind-dir-date-end" class="airport-select">
+                    <input type="date" id="wind-dir-date-start" class="airport-select" value="2019-01-01">
+                    <input type="date" id="wind-dir-date-end" class="airport-select" value="2019-12-31">
                 </div>
                 <div id="wind-dir-chart" class="chart-body" style="height: 500px;"></div>
             </div>
@@ -303,8 +301,8 @@
                         <option value="rvr">Simulación Intervalos RVR</option>
                     </select>
                     <select id="visor3d-airport" class="airport-select"><option value="Todos">Consolidado (Todos)</option></select>
-                    <input type="date" id="visor3d-date-start" class="airport-select">
-                    <input type="date" id="visor3d-date-end" class="airport-select">
+                    <input type="date" id="visor3d-date-start" class="airport-select" value="2019-01-01">
+                    <input type="date" id="visor3d-date-end" class="airport-select" value="2019-12-31">
                 </div>
                 <!-- ECharts container -->
                 <div id="visor-3d-gl" class="chart-body" style="height: 600px; width: 100%;"></div>
