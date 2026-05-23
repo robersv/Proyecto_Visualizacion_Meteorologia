@@ -108,14 +108,17 @@ def generate_json_payloads(df):
     
     # 5. Visibility vs Traffic (Graph 4 Redesign)
     df['is_low_vis'] = df['visibility'] < 1000
-    vis_traffic = df.groupby(['airport', 'month_name', 'hour', 'volume_group'], observed=True).agg(
+    vis_traffic = df.groupby(['airport', 'date', 'month_name', 'hour', 'volume_group'], observed=True).agg(
         total=('is_low_vis', 'count'),
         low_vis_count=('is_low_vis', 'sum')
     ).reset_index()
+    vis_traffic['date'] = vis_traffic['date'].astype(str)
     vis_traffic.to_json(os.path.join(OUTPUT_DIR, "visibility_vs_traffic.json"), orient="records")
     
     # 6. Cloud Amounts
-    cloud_amounts = df.groupby(['airport', 'month_name', 'hour', 'amount'], observed=True).size().reset_index(name='count')
+    cloud_amounts = df.groupby(['airport', 'month_name', 'hour', 'amount'], observed=True).agg({'duration_hours': 'sum'}).reset_index()
+    cloud_amounts.rename(columns={'duration_hours': 'count'}, inplace=True)
+    cloud_amounts['count'] = cloud_amounts['count'].round(1)
     cloud_amounts.to_json(os.path.join(OUTPUT_DIR, "cloud_amounts.json"), orient="records")
     
     # 7. Monthly Evolution
@@ -260,17 +263,18 @@ def generate_json_payloads(df):
 
     # 18. Phenomena Macro Freq (Gráfica 16)
     def categorize_phen(p):
-        if pd.isna(p) or p == 'Sin incidentes': return 'Sin incidentes'
+        if pd.isna(p) or p == 'Sin incidentes' or p.strip() == '': return 'Sin incidentes'
         p = str(p).upper()
-        if 'RA' in p or 'LLUVIA' in p or 'SN' in p or 'NIEVE' in p or 'GR' in p or 'GS' in p or 'GRANIZO' in p:
-            return 'Precipitación'
         if 'TS' in p or 'TORMENTA' in p:
             return 'Tormenta'
         if 'FG' in p or 'NIEBLA' in p or 'BR' in p or 'NEBLINA' in p or 'HZ' in p or 'BRUMA' in p:
             return 'Visibilidad'
+        if 'RA' in p or 'LLUVIA' in p or 'SN' in p or 'NIEVE' in p or 'GR' in p or 'GS' in p or 'GRANIZO' in p:
+            return 'Precipitación'
         return 'Otros'
         
-    df['phen_macro'] = df['phenomenon1'].apply(categorize_phen)
+    df['phen_combined'] = df['phenomenon1'].fillna('') + ' ' + df['phenomenon2'].fillna('') + ' ' + df['phenomenon3'].fillna('')
+    df['phen_macro'] = df['phen_combined'].apply(categorize_phen)
     phen_macro_freq = df.groupby(['airport', 'date', 'phen_macro']).agg({'duration_hours': 'sum'}).reset_index()
     phen_macro_freq.rename(columns={'duration_hours': 'count'}, inplace=True)
     phen_macro_freq['count'] = phen_macro_freq['count'].round(1)

@@ -351,7 +351,8 @@ function setupMonthlyEvo(data) {
                 const recs = sub.filter(x => x.hour === h);
                 return recs.length ? recs.reduce((s, r) => s + Number(r.temperature), 0) / recs.length : 0;
             });
-            traces.push({ x: hours.map(h=>h+'h'), y: yTemp.map(t => Number(t.toFixed(1))), type: 'scatter', mode: 'lines', name: apt + ' Temp(ºC)', yaxis: 'y2', line: {dash: 'dot'} });
+            const yTempClean = yTemp.map(t => typeof t === 'number' && !isNaN(t) ? Number(t.toFixed(1)) : 0);
+            traces.push({ x: hours.map(h=>h+'h'), y: yTempClean, type: 'scatter', mode: 'lines', name: apt + ' Temp(ºC)', yaxis: 'y2', line: {dash: 'dot'} });
         });
 
         Plotly.newPlot('monthly-evo', traces, { 
@@ -544,8 +545,8 @@ function setupTempBoxplot(data) {
         const hours = [...Array(24).keys()].map(h => h.toString().padStart(2, '0') + 'h');
         const traces = hours.map((h, i) => {
             return {
-                y: d.filter(x => x.hour === i).map(x => x.temperature),
-                type: 'box', name: h, marker: { color: '#F7B801' }
+                y: d.filter(x => x.hour === i).map(x => Number(x.temperature)),
+                type: 'box', name: h, marker: { color: '#F7B801' }, hovertemplate: '%{y:.1f} ºC<extra></extra>'
             };
         });
 
