@@ -453,7 +453,7 @@ function setupRadarCond(data) {
                     { label: 'Lluvia', values: d.map(x => x.has_rain) },
                     { label: 'Niebla', values: d.map(x => x.has_fog) }
                 ]
-            }], { ...layoutBase, margin: {t: 50, b: 20} }, {responsive: true});
+            }], { ...layoutBase, margin: {t: 50, b: 20}, plot_bgcolor: 'rgba(0,0,0,0)', paper_bgcolor: 'rgba(0,0,0,0)' }, {responsive: true});
         }
     };
     ['radar-airport', 'radar-chart-type', 'radar-date-start', 'radar-date-end', 'radar-time-start', 'radar-time-end'].forEach(id => {
@@ -523,8 +523,8 @@ function setupMacroPhen(data) {
                 const tk = formatT(r.date);
                 grouped[tk] = (grouped[tk] || 0) + r.count;
             });
-            const xKeys = Object.keys(grouped).sort();
-            return { x: xKeys, y: xKeys.map(k => grouped[k]), type: 'bar', name: apt };
+            const xKeys = [...new Set(aptData.map(r => formatT(r.date)))];
+            return { x: xKeys, y: xKeys.map(k => grouped[k] || 0), type: 'bar', name: apt };
         });
 
         Plotly.newPlot('macro-phen-chart', traces, { ...layoutBase, barmode: 'group', yaxis: { ...layoutBase.yaxis, title: 'Frecuencia' } }, {responsive: true});
@@ -550,7 +550,7 @@ function setupTempBoxplot(data) {
             };
         });
 
-        Plotly.newPlot('temp-boxplot', traces, { ...layoutBase, showlegend: false, xaxis: { ...layoutBase.xaxis, title: 'Hora del Día' }, yaxis: { ...layoutBase.yaxis, title: 'Temperatura (ºC)' } }, {responsive: true});
+        Plotly.newPlot('temp-boxplot', traces, { ...layoutBase, showlegend: false, margin: { t: 30, r: 20, b: 50, l: 80 }, xaxis: { ...layoutBase.xaxis, title: 'Hora del Día' }, yaxis: { ...layoutBase.yaxis, title: 'Temperatura (ºC)' } }, {responsive: true});
     };
     ['boxplot-airport', 'boxplot-date-start', 'boxplot-date-end'].forEach(id => {
         document.getElementById(id).addEventListener('change', render);
