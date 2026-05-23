@@ -362,8 +362,8 @@ function setupMonthlyEvo(data) {
         Plotly.newPlot('monthly-evo', traces, { 
             ...layoutBase, margin: { ...layoutBase.margin, l: 60, r: 60 }, 
             xaxis: { ...layoutBase.xaxis, title: 'Hora del Día (00-23h)' }, 
-            yaxis: { ...layoutBase.yaxis, title: 'Visibilidad (km)', side: 'left' },
-            yaxis2: { ...layoutBase.yaxis, title: 'Temperatura (ºC)', side: 'right', overlaying: 'y' }
+            yaxis: { ...layoutBase.yaxis, title: 'Visibilidad (km)', side: 'left', type: 'linear' },
+            yaxis2: { ...layoutBase.yaxis, title: 'Temperatura (ºC)', side: 'right', overlaying: 'y', type: 'linear' }
         }, {responsive: true});
     };
     ['evo-months', 'evo-airport'].forEach(id => {
