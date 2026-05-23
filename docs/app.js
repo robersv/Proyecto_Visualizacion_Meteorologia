@@ -285,8 +285,12 @@ function setupVisTraffic(data) {
             });
             Plotly.newPlot('vis-traffic', [
                 { x: hours.map(h=>h+'h'), y: yTraffic, name: 'Vuelos ALTA', type: 'scatter', fill: 'tozeroy', marker: {color: '#979DAC'} },
-                { x: hours.map(h=>h+'h'), y: yLowVis, name: 'Reportes Baja Vis', type: 'scatter', fill: 'tozeroy', marker: {color: '#D62828'} }
-            ], { ...layoutBase, title: 'Perfil Diario 24h (Tráfico ALTO)', yaxis: { ...layoutBase.yaxis, type: 'linear', title: 'Conteos' } }, {responsive: true});
+                { x: hours.map(h=>h+'h'), y: yLowVis, name: 'Reportes Baja Vis', type: 'scatter', mode: 'lines+markers', yaxis: 'y2', line: {color: THEME.colors.ALTA, width: 3} }
+            ], { 
+                ...layoutBase, title: 'Perfil Diario 24h (Tráfico ALTO)', 
+                yaxis: { ...layoutBase.yaxis, type: 'linear', title: 'Volumen Total' },
+                yaxis2: { title: 'Baja Vis', overlaying: 'y', side: 'right', showgrid: false, font: { color: THEME.colors.ALTA } }
+            }, {responsive: true});
         }
     };
     ['vis-airport', 'vis-chart-type', 'vis-date-start', 'vis-date-end'].forEach(id => {
@@ -312,7 +316,7 @@ function setupCloudAmounts(data) {
                 type: 'bar', name: month
             };
         });
-        Plotly.newPlot('cloud-amounts', traces, { ...layoutBase, barmode: 'group', xaxis: { ...layoutBase.xaxis, title: 'Hora del Día' } }, {responsive: true});
+        Plotly.newPlot('cloud-amounts', traces, { ...layoutBase, barmode: 'group', xaxis: { ...layoutBase.xaxis, title: 'Hora del Día' }, yaxis: { ...layoutBase.yaxis, title: 'Duración (Horas)', type: 'linear' } }, {responsive: true});
     };
     selApt.addEventListener('change', render); selMonths.addEventListener('change', render); render();
 }
@@ -445,7 +449,11 @@ function setupRadarCond(data) {
         } else {
             // Parcoords
             Plotly.newPlot('radar-cond', [{
-                type: 'parcoords', line: { color: d.map(x => x.is_low_vis), colorscale: 'Jet' },
+                type: 'parcoords', 
+                line: { color: d.map(x => x.is_low_vis), colorscale: 'Jet' },
+                labelfont: { color: 'black' },
+                tickfont: { color: 'black' },
+                rangefont: { color: 'black' },
                 dimensions: [
                     { label: 'Baja Vis', values: d.map(x => x.is_low_vis) },
                     { label: 'Viento', values: d.map(x => x.is_high_wind) },
@@ -453,7 +461,7 @@ function setupRadarCond(data) {
                     { label: 'Lluvia', values: d.map(x => x.has_rain) },
                     { label: 'Niebla', values: d.map(x => x.has_fog) }
                 ]
-            }], { ...layoutBase, margin: {t: 50, b: 20}, plot_bgcolor: 'rgba(0,0,0,0)', paper_bgcolor: 'rgba(0,0,0,0)' }, {responsive: true});
+            }], { ...layoutBase, margin: {t: 50, b: 20}, plot_bgcolor: '#FFFFFF', paper_bgcolor: '#FFFFFF' }, {responsive: true});
         }
     };
     ['radar-airport', 'radar-chart-type', 'radar-date-start', 'radar-date-end', 'radar-time-start', 'radar-time-end'].forEach(id => {
@@ -550,7 +558,7 @@ function setupTempBoxplot(data) {
             };
         });
 
-        Plotly.newPlot('temp-boxplot', traces, { ...layoutBase, showlegend: false, margin: { t: 30, r: 20, b: 50, l: 80 }, xaxis: { ...layoutBase.xaxis, title: 'Hora del Día' }, yaxis: { ...layoutBase.yaxis, title: 'Temperatura (ºC)' } }, {responsive: true});
+        Plotly.newPlot('temp-boxplot', traces, { ...layoutBase, showlegend: false, margin: { t: 30, r: 20, b: 50, l: 80 }, xaxis: { ...layoutBase.xaxis, title: 'Hora del Día' }, yaxis: { ...layoutBase.yaxis, title: 'Temperatura (ºC)', type: 'linear' } }, {responsive: true});
     };
     ['boxplot-airport', 'boxplot-date-start', 'boxplot-date-end'].forEach(id => {
         document.getElementById(id).addEventListener('change', render);
@@ -575,7 +583,7 @@ function setupTempStack(data) {
             };
         });
 
-        Plotly.newPlot('temp-stack-chart', traces, { ...layoutBase, barmode: 'stack', barnorm: 'percent', xaxis: { ...layoutBase.xaxis, title: 'Hora (00-23)', tickmode: 'linear' }, yaxis: { ...layoutBase.yaxis, title: '% Frecuencia' } }, {responsive: true});
+        Plotly.newPlot('temp-stack-chart', traces, { ...layoutBase, barmode: 'stack', barnorm: 'percent', xaxis: { ...layoutBase.xaxis, title: 'Hora (00-23)', tickmode: 'linear' }, yaxis: { ...layoutBase.yaxis, title: '% Frecuencia', type: 'linear' } }, {responsive: true});
     };
     ['temp-stack-airport', 'temp-stack-date-start', 'temp-stack-date-end'].forEach(id => {
         document.getElementById(id).addEventListener('change', render);
