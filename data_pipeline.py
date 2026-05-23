@@ -39,6 +39,8 @@ def load_and_merge_airport_data(airport_code):
     
     df_merged['airport'] = airport_code
     df_merged['dateTime'] = pd.to_datetime(df_merged['dateTime'])
+    df_merged['next_dateTime'] = pd.to_datetime(df_merged['next_dateTime'])
+    df_merged['duration_hours'] = (df_merged['next_dateTime'] - df_merged['dateTime']).dt.total_seconds() / 3600
     df_merged.sort_values('dateTime', inplace=True)
     
     cols_to_ffill = ['visibility', 'temperature', 'dewPoint', 'direction', 'knots', 'amount', 'height', 'type']
@@ -48,6 +50,9 @@ def load_and_merge_airport_data(airport_code):
             
     if 'amount' in df_merged.columns:
         df_merged['amount'] = df_merged['amount'].fillna('Despejado/CAVOK')
+        
+    if 'phenomenon1' in df_merged.columns:
+        df_merged['phenomenon1'] = df_merged['phenomenon1'].fillna('Sin incidentes')
             
     return df_merged
 
@@ -123,9 +128,11 @@ def generate_json_payloads(df):
 
     # 8. Phenomena Distribution
     phenomena_cols = ['phenomenon1', 'phenomenon2', 'phenomenon3']
-    all_phen = pd.melt(df, id_vars=['airport', 'date'], value_vars=phenomena_cols, value_name='phenomenon')
+    all_phen = pd.melt(df, id_vars=['airport', 'date', 'duration_hours'], value_vars=phenomena_cols, value_name='phenomenon')
     all_phen = all_phen.dropna(subset=['phenomenon'])
-    phen_dist = all_phen.groupby(['airport', 'date', 'phenomenon']).size().reset_index(name='count')
+    phen_dist = all_phen.groupby(['airport', 'date', 'phenomenon']).agg({'duration_hours': 'sum'}).reset_index()
+    phen_dist.rename(columns={'duration_hours': 'count'}, inplace=True)
+    phen_dist['count'] = phen_dist['count'].round(1)
     phen_dist['date'] = phen_dist['date'].astype(str)
     phen_dist.to_json(os.path.join(OUTPUT_DIR, "phenomena_distribution.json"), orient="records")
 
@@ -253,7 +260,7 @@ def generate_json_payloads(df):
 
     # 18. Phenomena Macro Freq (Gráfica 16)
     def categorize_phen(p):
-        if pd.isna(p): return 'Ninguno'
+        if pd.isna(p) or p == 'Sin incidentes': return 'Sin incidentes'
         p = str(p).upper()
         if 'RA' in p or 'LLUVIA' in p or 'SN' in p or 'NIEVE' in p or 'GR' in p or 'GS' in p or 'GRANIZO' in p:
             return 'Precipitación'
@@ -264,7 +271,9 @@ def generate_json_payloads(df):
         return 'Otros'
         
     df['phen_macro'] = df['phenomenon1'].apply(categorize_phen)
-    phen_macro_freq = df[df['phen_macro'] != 'Ninguno'].groupby(['airport', 'date', 'phen_macro']).size().reset_index(name='count')
+    phen_macro_freq = df.groupby(['airport', 'date', 'phen_macro']).agg({'duration_hours': 'sum'}).reset_index()
+    phen_macro_freq.rename(columns={'duration_hours': 'count'}, inplace=True)
+    phen_macro_freq['count'] = phen_macro_freq['count'].round(1)
     phen_macro_freq['date'] = phen_macro_freq['date'].astype(str)
     phen_macro_freq.to_json(os.path.join(OUTPUT_DIR, "phenomena_macro_freq.json"), orient="records")
 

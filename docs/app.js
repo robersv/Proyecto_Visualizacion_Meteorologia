@@ -122,8 +122,12 @@ async function initDashboard() {
 function plotPhenomenaDist(data) {
     const selApt = document.getElementById('phenomena-airport');
     const selMonths = document.getElementById('phenomena-months');
+    const chkNoInc = document.getElementById('toggle-no-incident');
     const render = () => {
         let d = data;
+        if (chkNoInc && !chkNoInc.checked) {
+            d = d.filter(x => x.phenomenon !== 'Sin incidentes');
+        }
         const selectedApts = Array.from(selApt.selectedOptions).map(opt => opt.value);
         if (selectedApts.length > 0) {
             d = d.filter(x => selectedApts.includes(x.airport));
@@ -145,22 +149,50 @@ function plotPhenomenaDist(data) {
         const tableData = [];
         for (const [phen, count] of Object.entries(agg)) {
             tableData.push({ phen, count, pct: total > 0 ? (count/total)*100 : 0 });
-            if (count < threshold) grouped['Otros'] += count;
-            else grouped[phen] = count;
+            if (phen === 'Sin incidentes') {
+                grouped[phen] = count;
+            } else if (count < threshold) {
+                grouped['Otros'] += count;
+            } else {
+                grouped[phen] = count;
+            }
         }
+        
+        // Remove 'Otros' if it's 0
+        if (grouped['Otros'] === 0) delete grouped['Otros'];
+
         tableData.sort((a,b) => b.count - a.count);
         const tbody = document.querySelector('#phenomena-table tbody');
         tbody.innerHTML = '';
         tableData.forEach(r => {
             const tr = document.createElement('tr');
-            tr.innerHTML = `<td>${r.phen}</td><td>${r.count}</td><td>${r.pct.toFixed(2)}%</td>`;
+            tr.innerHTML = `<td>${r.phen}</td><td>${r.count.toFixed(1)} h</td><td>${r.pct.toFixed(2)}%</td>`;
             tbody.appendChild(tr);
         });
-        const trace = { labels: Object.keys(grouped), values: Object.values(grouped), type: 'pie', hole: 0.4, marker: { colors: ['#48CAE4', '#F7B801', '#D62828', '#979DAC'] } };
+        
+        const labels = Object.keys(grouped);
+        const values = Object.values(grouped);
+        const defaultPalette = ['#48CAE4', '#F7B801', '#D62828', '#8338ec', '#ff006e', '#3a86ff', '#06d6a0'];
+        let cIdx = 0;
+        const colors = labels.map(l => {
+            if (l === 'Sin incidentes') return '#cbd5e1';
+            if (l === 'Otros') return '#979DAC';
+            return defaultPalette[cIdx++ % defaultPalette.length];
+        });
+
+        const trace = { 
+            labels: labels, 
+            values: values, 
+            type: 'pie', 
+            hole: 0.4, 
+            marker: { colors: colors },
+            hovertemplate: '<b>%{label}</b><br>Duración: %{value:.1f} Horas<br>Porcentaje: %{percent}<extra></extra>'
+        };
         Plotly.newPlot('phenomena-dist', [trace], { ...layoutBase, margin: {t:10, b:10, l:10, r:10}}, {responsive: true});
     };
-    ['phenomena-airport', 'phenomena-months'].forEach(id => {
-        document.getElementById(id).addEventListener('change', render);
+    ['phenomena-airport', 'phenomena-months', 'toggle-no-incident'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', render);
     });
     render();
 }

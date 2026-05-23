@@ -50,9 +50,13 @@
                     <h4>Gráfica 1: Fenómenos Meteorológicos Frecuentes</h4>
                     <p class="chart-desc">Distribución porcentual. Se agrupan eventos menores al 10% en "Otros". (Consolidado Nacional)</p>
                 </div>
-                <div class="filters" style="display:flex; gap:10px;">
+                <div class="controls fade-in">
                     <select id="phenomena-airport" class="multi-select" multiple></select>
                     <select id="phenomena-months" class="multi-select" multiple></select>
+                    <label class="checkbox-label" style="display:flex; align-items:center; gap:0.5rem; color:#f8fafc;">
+                        <input type="checkbox" id="toggle-no-incident" checked>
+                        Incluir "Sin Incidentes"
+                    </label>
                 </div>
                 <div class="phenomena-container">
                     <div id="phenomena-dist" style="width: 55%; height: 400px;"></div>
