@@ -320,16 +320,24 @@ function setupCloudAmounts(data) {
         const selectedApts = Array.from(selApt.selectedOptions).map(opt => opt.value);
         if (selectedApts.length > 0) d = d.filter(x => selectedApts.includes(x.airport));
         const selectedMonths = Array.from(selMonths.selectedOptions).map(opt => opt.value);
+        const daysPerMonth = {
+            'Enero': 31, 'Febrero': 28, 'Marzo': 31, 'Abril': 30, 'Mayo': 31, 'Junio': 30,
+            'Julio': 31, 'Agosto': 31, 'Septiembre': 30, 'Octubre': 31, 'Noviembre': 30, 'Diciembre': 31
+        };
         const traces = selectedMonths.map(month => {
             const sub = d.filter(x => x.month_name === month);
             const hours = [...Array(24).keys()];
+            const daysInMonth = daysPerMonth[month] || 30;
             return {
                 x: hours.map(h => h + 'h'),
-                y: hours.map(h => sub.filter(x => x.hour === h).reduce((sum, r) => sum + Number(r.count), 0)),
+                y: hours.map(h => {
+                    const sum = sub.filter(x => x.hour === h).reduce((s, r) => s + Number(r.count), 0);
+                    return (sum / daysInMonth) * 100;
+                }),
                 type: 'bar', name: month
             };
         });
-        Plotly.newPlot('cloud-amounts', traces, { ...layoutBase, barmode: 'group', xaxis: { ...layoutBase.xaxis, title: 'Hora del Día' }, yaxis: { ...layoutBase.yaxis, title: 'Duración (Horas)', type: 'linear' } }, {responsive: true});
+        Plotly.newPlot('cloud-amounts', traces, { ...layoutBase, barmode: 'group', xaxis: { ...layoutBase.xaxis, title: 'Hora del Día' }, yaxis: { ...layoutBase.yaxis, title: '% Cobertura Nubosa', type: 'linear' } }, {responsive: true});
     };
     selApt.addEventListener('change', render); selMonths.addEventListener('change', render); render();
 }
