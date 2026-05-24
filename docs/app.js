@@ -200,7 +200,7 @@ function setupWindRose(data) {
         const colorScale = ['#90E0EF', '#48CAE4', '#00B4D8', '#0077B6', '#03045E'];
         const traces = speeds.map((speed, i) => {
             return {
-                r: directions.map(dir => d.filter(x => x.wind_dir_cat === dir && x.wind_speed_cat === speed).reduce((sum, r) => sum + r.count, 0)),
+                r: directions.map(dir => d.filter(x => x.wind_dir_cat === dir && x.wind_speed_cat === speed).reduce((sum, r) => sum + (Number(r.count) || 0), 0)),
                 theta: directions, name: speed + ' kt', type: 'barpolar', marker: { color: colorScale[i] }
             };
         });
@@ -331,8 +331,8 @@ function setupCloudAmounts(data) {
             return {
                 x: hours.map(h => h + 'h'),
                 y: hours.map(h => {
-                    const sum = sub.filter(x => x.hour === h).reduce((s, r) => s + Number(r.count), 0);
-                    return (sum / daysInMonth) * 100;
+                    const sum = sub.filter(x => x.hour === h && x.amount !== 'Despejado/CAVOK').reduce((s, r) => s + Number(r.count), 0);
+                    return Math.min((sum / daysInMonth) * 100, 100);
                 }),
                 type: 'bar', name: month
             };
