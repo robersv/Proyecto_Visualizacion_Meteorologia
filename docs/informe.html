@@ -17,6 +17,15 @@
 
     <link rel="stylesheet" href="style.css">
     <style>
+        :root {
+            --bg-main: #ffffff;
+            --bg-card: #ffffff;
+            --text-primary: #0f172a;
+            --text-secondary: #334155;
+            --border-color: rgba(0, 0, 0, 0.08);
+            --bg-card-hover: #f8fafc;
+        }
+
         /* Estilos específicos para la visualización del informe técnico */
         .report-container {
             max-width: 1200px;
@@ -28,9 +37,9 @@
             background-color: var(--bg-card);
             border-radius: 12px;
             padding: 3rem;
-            border: 1px solid var(--border-color);
+            border: none;
             margin-bottom: 3rem;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            box-shadow: none;
         }
 
         .report-header {
@@ -45,9 +54,7 @@
             font-weight: 800;
             margin-bottom: 1rem;
             line-height: 1.3;
-            background: linear-gradient(135deg, var(--text-primary), var(--accent-wind));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            color: var(--text-primary);
         }
 
         .report-meta {
@@ -76,7 +83,7 @@
 
         .report-section h3 {
             font-size: 1.6rem;
-            color: var(--accent-wind-light);
+            color: #1e3a8a; /* Azul oscuro corporativo para legibilidad en fondo blanco */
             margin-top: 2.5rem;
             margin-bottom: 1.5rem;
             border-bottom: 1px solid var(--border-color);
@@ -86,7 +93,7 @@
 
         .report-section h4 {
             font-size: 1.25rem;
-            color: var(--text-primary);
+            color: #334155;
             margin-top: 2rem;
             margin-bottom: 1rem;
             font-weight: 600;
@@ -113,8 +120,8 @@
         }
 
         .report-quote {
-            border-left: 4px solid var(--accent-wind);
-            background: rgba(72, 202, 228, 0.05);
+            border-left: 4px solid #0077B6;
+            background: rgba(0, 119, 182, 0.05);
             padding: 1.5rem 2rem;
             border-radius: 0 8px 8px 0;
             margin: 2rem 0;
@@ -123,19 +130,19 @@
 
         /* Estilo para las gráficas incrustadas en el informe */
         .chart-card-report {
-            background-color: var(--bg-main);
+            background-color: #f8fafc;
             border-radius: 12px;
             padding: 2rem;
             border: 1px solid var(--border-color);
             margin: 2.5rem 0;
             display: flex;
             flex-direction: column;
-            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+            box-shadow: none;
         }
 
         .chart-card-report .chart-header {
             margin-bottom: 1.5rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid var(--border-color);
             padding-bottom: 1rem;
         }
 
@@ -202,13 +209,13 @@
         }
 
         .data-table-report th {
-            background: rgba(255, 255, 255, 0.05);
+            background: #f1f5f9;
             font-weight: 600;
             color: var(--text-primary);
         }
 
         .data-table-report tr:hover td {
-            background: rgba(255, 255, 255, 0.02);
+            background: rgba(0, 0, 0, 0.01);
         }
 
         .multi-select {
@@ -236,7 +243,7 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            color: #f8fafc;
+            color: var(--text-primary);
             font-size: 0.9rem;
             cursor: pointer;
         }
@@ -259,8 +266,6 @@
             <header class="report-header">
                 <h2 class="report-title">Impacto de las Condiciones Meteorológicas (METAR) en las Operaciones Aeroportuarias de España sobre los datos de 2019</h2>
                 <div class="report-meta">
-                    <span>Autor: <strong>Roberto Sánchez Vilariño</strong></span>
-                    <span>Expediente: <strong>225i1022</strong></span>
                     <span>Estudio: <strong>Master en Industria 4.0</strong></span>
                     <span>Fecha: <strong>Madrid, Abril 2026</strong></span>
                 </div>

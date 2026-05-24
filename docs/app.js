@@ -1,4 +1,8 @@
-const THEME = {
+const isReportPage = window.location.pathname.includes('informe.html');
+const THEME = isReportPage ? {
+    bg_main: '#ffffff', bg_card: '#ffffff', text_primary: '#0f172a', text_secondary: '#334155',
+    grid_color: 'rgba(0, 0, 0, 0.08)', colors: { ALTA: '#dc2626', MEDIA: '#d97706', BAJA: '#16a34a' }
+} : {
     bg_main: '#0f172a', bg_card: '#1e293b', text_primary: '#f8fafc', text_secondary: '#94a3b8',
     grid_color: 'rgba(255, 255, 255, 0.08)', colors: { ALTA: '#ef4444', MEDIA: '#f59e0b', BAJA: '#10b981' }
 };
@@ -715,10 +719,10 @@ function setupVisor3D(cloudData, visData, rvrData) {
         const maxVal = Math.max(...seriesData.map(v => v[2]), 10);
         chart.setOption({
             tooltip: { formatter: p => `Hora: ${hours[p.value[0]]}<br/>Rango: ${bins[p.value[1]]}<br/>Count: ${p.value[2]}` },
-            visualMap: { max: maxVal, inRange: { color: ['#313695', '#4575b4', '#74add1', '#abd9e9', '#e0f3f8', '#ffffbf', '#fee090', '#fdae61', '#f46d43', '#d73027', '#a50026'] }, textStyle: { color: '#fff' } },
-            xAxis3D: { type: 'category', data: hours, name: 'Hora', nameTextStyle: {color: '#fff'}, axisLabel: {color: '#979DAC'} },
-            yAxis3D: { type: 'category', data: bins, name: current.tit, nameTextStyle: {color: '#fff'}, axisLabel: {color: '#979DAC'} },
-            zAxis3D: { type: 'value', name: 'Frecuencia', nameTextStyle: {color: '#fff'}, axisLabel: {color: '#979DAC'} },
+            visualMap: { max: maxVal, inRange: { color: ['#313695', '#4575b4', '#74add1', '#abd9e9', '#e0f3f8', '#ffffbf', '#fee090', '#fdae61', '#f46d43', '#d73027', '#a50026'] }, textStyle: { color: THEME.text_primary } },
+            xAxis3D: { type: 'category', data: hours, name: 'Hora', nameTextStyle: {color: THEME.text_primary}, axisLabel: {color: THEME.text_secondary} },
+            yAxis3D: { type: 'category', data: bins, name: current.tit, nameTextStyle: {color: THEME.text_primary}, axisLabel: {color: THEME.text_secondary} },
+            zAxis3D: { type: 'value', name: 'Frecuencia', nameTextStyle: {color: THEME.text_primary}, axisLabel: {color: THEME.text_secondary} },
             grid3D: { boxWidth: 200, boxDepth: 80, boxHeight: 100, viewControl: { autoRotate: false, distance: 300, alpha: 20, beta: 40 }, light: { main: { intensity: 1.2, shadow: true }, ambient: { intensity: 0.3 } } },
             series: [{ type: 'bar3D', data: seriesData, shading: 'lambert', label: { show: false }, itemStyle: { opacity: 0.9 } }]
         }, true); // true forces clear
