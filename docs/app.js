@@ -134,22 +134,12 @@ function plotPhenomenaDist(data) {
 
         let total = 0; const agg = {};
         d.forEach(r => { agg[r.phenomenon] = (agg[r.phenomenon] || 0) + Number(r.count); total += Number(r.count); });
-        const threshold = total * 0.10;
-        const grouped = { 'Otros': 0 };
+        const grouped = {};
         const tableData = [];
         for (const [phen, count] of Object.entries(agg)) {
             tableData.push({ phen, count, pct: total > 0 ? (count/total)*100 : 0 });
-            if (phen === 'Sin incidentes') {
-                grouped[phen] = count;
-            } else if (count < threshold) {
-                grouped['Otros'] += count;
-            } else {
-                grouped[phen] = count;
-            }
+            grouped[phen] = count;
         }
-        
-        // Remove 'Otros' if it's 0
-        if (grouped['Otros'] === 0) delete grouped['Otros'];
 
         tableData.sort((a,b) => b.count - a.count);
         const tbody = document.querySelector('#phenomena-table tbody');
