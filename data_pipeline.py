@@ -116,9 +116,10 @@ def generate_json_payloads(df):
     vis_traffic.to_json(os.path.join(OUTPUT_DIR, "visibility_vs_traffic.json"), orient="records")
     
     # 6. Cloud Heights (Redesign to focus on cloud base altitude)
-    cloudy_df = df[df['amount'].isin(['FEW', 'SCT', 'BKN', 'OVC']) & df['height'].notna()].copy()
-    bins = [-1, 2.0, 5.0, 10.0, 30.0, float('inf')]
-    labels = ['≤ 200 ft', '300 - 500 ft', '600 - 1000 ft', '1100 - 3000 ft', '> 3000 ft']
+    # Filter clouds above 3000 ft as they are operationally irrelevant
+    cloudy_df = df[df['amount'].isin(['FEW', 'SCT', 'BKN', 'OVC']) & df['height'].notna() & (df['height'] <= 30.0)].copy()
+    bins = [-1, 2.0, 5.0, 10.0, 30.0]
+    labels = ['≤ 200 ft', '300 - 500 ft', '600 - 1000 ft', '1100 - 3000 ft']
     cloudy_df['height_bin'] = pd.cut(cloudy_df['height'], bins=bins, labels=labels)
     
     # Drop duplicates for the same METAR and the same altitude bin to avoid double counting same-bin layers

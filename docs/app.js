@@ -3,7 +3,7 @@ const THEME = {
     grid_color: 'rgba(255, 255, 255, 0.08)', colors: { ALTA: '#ef4444', MEDIA: '#f59e0b', BAJA: '#10b981' }
 };
 
-const DATA_VERSION = '13';
+const DATA_VERSION = '15';
 
 const layoutBase = {
     plot_bgcolor: THEME.bg_card, paper_bgcolor: THEME.bg_card,
@@ -74,7 +74,7 @@ async function initDashboard() {
         populateSelect('clouds-months', MONTH_NAMES, false);
         populateSelect('macro-phen-airport', airports, false);
 
-        const altitudeBins = ['≤ 200 ft', '300 - 500 ft', '600 - 1000 ft', '1100 - 3000 ft', '> 3000 ft'];
+        const altitudeBins = ['≤ 200 ft', '300 - 500 ft', '600 - 1000 ft', '1100 - 3000 ft'];
         populateSelect('clouds-altitude', altitudeBins, false);
 
         // Pre-select some multiselects (First option by default to avoid empty charts)
@@ -341,8 +341,7 @@ function setupCloudHeights(data) {
             '≤ 200 ft': '#dc2626',      // Rojo (Crítico LVP)
             '300 - 500 ft': '#ea580c',    // Naranja
             '600 - 1000 ft': '#eab308',   // Amarillo
-            '1100 - 3000 ft': '#0ea5e9',  // Celeste
-            '> 3000 ft': '#1e3a8a'        // Azul oscuro
+            '1100 - 3000 ft': '#0ea5e9'   // Celeste
         };
 
         const traces = selectedAlts.map(bin => {
