@@ -148,46 +148,45 @@
 
         <section class="dashboard-section">
             <h3 class="section-title">3. Visibilidad y Cobertura Nubosa</h3>
-            <div class="chart-grid-2">
-                <div class="chart-card">
-                    <div class="chart-header">
-                        <h4>Gráfica 4A: Mapa de Calor (Mes vs Hora)</h4>
-                        <p class="chart-desc">Proporción de incidentes de baja visibilidad por mes y hora.</p>
-                    </div>
-                    <div class="filters" style="display:flex; gap:10px; flex-wrap:wrap;">
-                        <select id="vis-heatmap-airport" class="airport-select">
-                            <option value="Todos">Consolidado (Todos)</option>
-                        </select>
-                    </div>
-                    <div id="vis-traffic-heatmap" class="chart-body"></div>
+            <div class="chart-card full-width">
+                <div class="chart-header">
+                    <h4>Gráfica 4A: Mapa de Calor (Mes vs Hora)</h4>
+                    <p class="chart-desc">Proporción de incidentes de baja visibilidad por mes y hora.</p>
                 </div>
+                <div class="filters" style="display:flex; gap:10px; flex-wrap:wrap;">
+                    <select id="vis-heatmap-airport" class="airport-select">
+                        <option value="Todos">Consolidado (Todos)</option>
+                    </select>
+                </div>
+                <div id="vis-traffic-heatmap" class="chart-body"></div>
+            </div>
 
-                <div class="chart-card">
-                    <div class="chart-header">
-                        <h4>Gráfica 4B: Perfil Diario de 24h</h4>
-                        <p class="chart-desc">Volumen total vs reportes de baja visibilidad.</p>
-                    </div>
-                    <div class="filters" style="display:flex; gap:10px; flex-wrap:wrap;">
-                        <select id="vis-profile-airport" class="airport-select">
-                            <option value="Todos">Consolidado (Todos)</option>
-                        </select>
-                        <input type="date" id="vis-profile-date-start" class="airport-select" value="2019-01-01">
-                        <input type="date" id="vis-profile-date-end" class="airport-select" value="2019-12-31">
-                    </div>
-                    <div id="vis-traffic-profile" class="chart-body"></div>
-                <!-- GRÁFICA 5 -->
-                <div class="chart-card">
-                    <div class="chart-header">
-                        <h4>Gráfica 5: Riesgo Operativo por Altitud de Nubosidad</h4>
-                        <p class="chart-desc">Horas absolutas de afectación según la altura de la base de nubes. Filtra por aeropuerto, mes y altitud.</p>
-                    </div>
-                    <div class="filters" style="display:flex; gap:10px;">
-                        <select id="clouds-airport" class="multi-select" multiple></select>
-                        <select id="clouds-months" class="multi-select" multiple></select>
-                        <select id="clouds-altitude" class="multi-select" multiple></select>
-                    </div>
-                    <div id="cloud-heights" class="chart-body"></div>
+            <div class="chart-card full-width" style="margin-top: 2rem;">
+                <div class="chart-header">
+                    <h4>Gráfica 4B: Perfil Diario de 24h</h4>
+                    <p class="chart-desc">Volumen total vs reportes de baja visibilidad.</p>
                 </div>
+                <div class="filters" style="display:flex; gap:10px; flex-wrap:wrap;">
+                    <select id="vis-profile-airport" class="airport-select">
+                        <option value="Todos">Consolidado (Todos)</option>
+                    </select>
+                    <input type="date" id="vis-profile-date-start" class="airport-select" value="2019-01-01">
+                    <input type="date" id="vis-profile-date-end" class="airport-select" value="2019-12-31">
+                </div>
+                <div id="vis-traffic-profile" class="chart-body"></div>
+            </div>
+
+            <div class="chart-card full-width" style="margin-top: 2rem;">
+                <div class="chart-header">
+                    <h4>Gráfica 5: Riesgo Operativo por Altitud de Nubosidad</h4>
+                    <p class="chart-desc">Horas absolutas de afectación según la altura de la base de nubes. Filtra por aeropuerto, mes y altitud.</p>
+                </div>
+                <div class="filters" style="display:flex; gap:10px;">
+                    <select id="clouds-airport" class="multi-select" multiple></select>
+                    <select id="clouds-months" class="multi-select" multiple></select>
+                    <select id="clouds-altitude" class="multi-select" multiple></select>
+                </div>
+                <div id="cloud-heights" class="chart-body"></div>
             </div>
         </section>
 
