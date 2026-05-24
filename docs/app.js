@@ -52,58 +52,43 @@ async function initDashboard() {
 
         const airports = [...new Set(phenData.map(d => d.airport))].sort();
         const allSelectors = [
-            'wind-rose-airport', 'gusts-airport', 'vis-airport', 'clouds-airport', 
+            'gusts-airport', 'vis-heatmap-airport', 'vis-profile-airport', 
             'scatter3d-airport', 'radar-airport', 'climate-airport', 'boxplot-airport',
-            'temp-stack-airport', 'wind-dir-airport', 'visor3d-airport', 'evo-airport'
+            'temp-stack-airport', 'wind-dir-airport', 'visor3d-airport'
         ];
         
         allSelectors.forEach(id => {
-            if(id === 'climate-airport' || id === 'wind-rose-airport') populateSelect(id, airports, false);
+            if(id === 'climate-airport') populateSelect(id, airports, false);
             else populateSelect(id, airports);
-        });
-
-        // Populate Time Dropdowns
-        const timeSelectors = ['gusts-time-start', 'gusts-time-end', 'scatter3d-time-start', 'scatter3d-time-end', 'radar-time-start', 'radar-time-end'];
-        timeSelectors.forEach(id => {
-            const el = document.getElementById(id);
-            if(el) {
-                for(let i=0; i<24; i++) {
-                    const opt = document.createElement('option');
-                    opt.value = i;
-                    opt.textContent = i.toString().padStart(2, '0') + ':00';
-                    el.appendChild(opt);
-                }
-                if(id.includes('end')) el.value = 23;
-            }
         });
 
         // Multiselectors
         populateSelect('phenomena-airport', airports, false);
+        populateSelect('wind-rose-airport', airports, false);
+        populateSelect('clouds-airport', airports, false);
+        populateSelect('evo-airport', airports, false);
         populateSelect('wind-rose-months', MONTH_NAMES, false);
         populateSelect('phenomena-months', MONTH_NAMES, false);
         populateSelect('evo-months', MONTH_NAMES, false);
         populateSelect('clouds-months', MONTH_NAMES, false);
         populateSelect('macro-phen-airport', airports, false);
 
-        // Pre-select some multiselects
-        const phenA = document.getElementById('phenomena-airport');
-        if(phenA && phenA.options.length > 0) phenA.options[0].selected = true;
-        const wrM = document.getElementById('wind-rose-months');
-        if(wrM && wrM.options.length > 0) wrM.options[0].selected = true;
-        const phenM = document.getElementById('phenomena-months');
-        if(phenM && phenM.options.length > 0) phenM.options[0].selected = true;
-        const evoM = document.getElementById('evo-months');
-        if(evoM && evoM.options.length > 0) evoM.options[0].selected = true;
-        const cloudM = document.getElementById('clouds-months');
-        if(cloudM && cloudM.options.length > 0) cloudM.options[0].selected = true;
-        const macroA = document.getElementById('macro-phen-airport');
-        if(macroA && macroA.options.length > 0) macroA.options[0].selected = true;
+        // Pre-select some multiselects (First option by default to avoid empty charts)
+        const multiIds = [
+            'phenomena-airport', 'wind-rose-airport', 'clouds-airport', 'evo-airport', 'macro-phen-airport',
+            'wind-rose-months', 'phenomena-months', 'evo-months', 'clouds-months'
+        ];
+        multiIds.forEach(id => {
+            const el = document.getElementById(id);
+            if(el && el.options.length > 0) el.options[0].selected = true;
+        });
 
         // Init Graphs
         plotPhenomenaDist(phenData);
         setupWindRose(windRoseData);
         setupWindGusts(gustsData);
-        setupVisTraffic(visData);
+        setupVisHeatmap(visData);
+        setupVisProfile(visData);
         setupCloudAmounts(cloudData);
         setupMonthlyEvo(monthlyData);
         setupScatter3D(scatter3dData);
@@ -119,6 +104,11 @@ async function initDashboard() {
 }
 
 // 1. Phenomena
+/**
+ * Renderiza la Gráfica 1 (Distribución de Fenómenos).
+ * Genera el gráfico circular (Pie) y la tabla adyacente filtrando por aeropuerto, mes e incidentes.
+ * @param {Array} data - JSON de fenómenos meteorológicos
+ */
 function plotPhenomenaDist(data) {
     const selApt = document.getElementById('phenomena-airport');
     const selMonths = document.getElementById('phenomena-months');
@@ -198,12 +188,19 @@ function plotPhenomenaDist(data) {
 }
 
 // 2. Wind Rose
+/**
+ * Renderiza la Rosa de los Vientos (Gráfica 2).
+ * Convierte datos polares en una gráfica de barras radial (barpolar), cruzando intensidad y dirección.
+ * @param {Array} data - JSON de frecuencias de dirección del viento
+ */
 function setupWindRose(data) {
     const selApt = document.getElementById('wind-rose-airport');
     const selMonths = document.getElementById('wind-rose-months');
     const render = () => {
         let d = data;
-        if(selApt.value !== 'Todos') d = d.filter(x => x.airport === selApt.value);
+        const selectedApts = Array.from(selApt.selectedOptions).map(opt => opt.value);
+        if (selectedApts.length > 0) d = d.filter(x => selectedApts.includes(x.airport));
+        
         const selectedMonths = Array.from(selMonths.selectedOptions).map(opt => opt.value);
         if (selectedMonths.length > 0) {
             d = d.filter(x => selectedMonths.includes(x.month_name));
@@ -254,58 +251,84 @@ function setupWindGusts(data) {
 }
 
 // 4. Vis Traffic (Heatmap & Area)
-function setupVisTraffic(data) {
-    const selApt = document.getElementById('vis-airport');
-    const selType = document.getElementById('vis-chart-type');
+/**
+ * Renderiza el Mapa de Calor de Tráfico vs Visibilidad (Gráfica 4A).
+ * Muestra la concentración (porcentaje) de baja visibilidad por mes y hora.
+ * @param {Array} data - JSON cruzado de volúmenes de tráfico y visibilidad
+ */
+function setupVisHeatmap(data) {
+    const selApt = document.getElementById('vis-heatmap-airport');
     const render = () => {
-        let d = dateFilter(data, 'vis-date-start', 'vis-date-end');
+        let d = data;
         if(selApt.value !== 'Todos') d = d.filter(x => x.airport === selApt.value);
         
-        if (selType.value === 'heatmap') {
-            const hours = [...Array(24).keys()];
-            const zValues = MONTH_NAMES.map(m => {
-                return hours.map(h => {
-                    const recs = d.filter(x => x.month_name === m && x.hour === h && x.volume_group === 'ALTA');
-                    if(recs.length === 0) return 0;
-                    const tot = recs.reduce((s, r) => s + Number(r.total), 0);
-                    const low = recs.reduce((s, r) => s + Number(r.low_vis_count), 0);
-                    return tot > 0 ? (low/tot)*100 : 0;
-                });
+        const hours = [...Array(24).keys()];
+        const zValues = MONTH_NAMES.map(m => {
+            return hours.map(h => {
+                const recs = d.filter(x => x.month_name === m && x.hour === h && x.volume_group === 'ALTA');
+                if(recs.length === 0) return 0;
+                const tot = recs.reduce((s, r) => s + Number(r.total), 0);
+                const low = recs.reduce((s, r) => s + Number(r.low_vis_count), 0);
+                return tot > 0 ? (low/tot)*100 : 0;
             });
-            Plotly.newPlot('vis-traffic', [{
-                z: zValues, x: hours.map(h=>h+'h'), y: MONTH_NAMES, type: 'heatmap', colorscale: 'YlOrRd'
-            }], { ...layoutBase, margin: {l: 80, r: 20, t: 30, b: 50}, title: '% Baja Visibilidad en Tráfico ALTO' }, {responsive: true});
-        } else {
-            const hours = [...Array(24).keys()];
-            const yTraffic = hours.map(h => {
-                return d.filter(x => x.hour === h && x.volume_group === 'ALTA').reduce((s, r) => s + Number(r.total), 0);
-            });
-            const yLowVis = hours.map(h => {
-                return d.filter(x => x.hour === h && x.volume_group === 'ALTA').reduce((s, r) => s + Number(r.low_vis_count), 0);
-            });
-            Plotly.newPlot('vis-traffic', [
-                { x: hours.map(h=>h+'h'), y: yTraffic, name: 'Vuelos ALTA', type: 'scatter', fill: 'tozeroy', marker: {color: '#979DAC'} },
-                { x: hours.map(h=>h+'h'), y: yLowVis, name: 'Reportes Baja Vis', type: 'scatter', mode: 'lines+markers', yaxis: 'y2', line: {color: THEME.colors.ALTA, width: 3} }
-            ], { 
-                ...layoutBase, title: 'Perfil Diario 24h (Tráfico ALTO)', 
-                yaxis: { ...layoutBase.yaxis, type: 'linear', title: 'Volumen Total' },
-                yaxis2: { title: 'Baja Vis', overlaying: 'y', side: 'right', showgrid: false, font: { color: THEME.colors.ALTA } }
-            }, {responsive: true});
-        }
+        });
+        Plotly.newPlot('vis-traffic-heatmap', [{
+            z: zValues, x: hours.map(h=>h+'h'), y: MONTH_NAMES, type: 'heatmap', colorscale: 'YlOrRd'
+        }], { ...layoutBase, margin: {l: 80, r: 20, t: 30, b: 50}, title: '% Baja Visibilidad en Tráfico ALTO' }, {responsive: true});
     };
-    ['vis-airport', 'vis-chart-type', 'vis-date-start', 'vis-date-end'].forEach(id => {
-        document.getElementById(id).addEventListener('change', render);
+    if (selApt) selApt.addEventListener('change', render);
+    render();
+}
+
+/**
+ * Renderiza el Perfil Diario 24H (Gráfica 4B).
+ * Compara el volumen absoluto de vuelos vs la cantidad absoluta de incidentes de visibilidad.
+ * Utiliza yaxis2 (eje dual) a la derecha para contrastar rangos numéricos dispares.
+ * @param {Array} data - JSON cruzado de volúmenes de tráfico y visibilidad
+ */
+function setupVisProfile(data) {
+    const selApt = document.getElementById('vis-profile-airport');
+    const render = () => {
+        let d = dateFilter(data, 'vis-profile-date-start', 'vis-profile-date-end');
+        if(selApt.value !== 'Todos') d = d.filter(x => x.airport === selApt.value);
+        
+        const hours = [...Array(24).keys()];
+        const yTraffic = hours.map(h => {
+            return d.filter(x => x.hour === h && x.volume_group === 'ALTA').reduce((s, r) => s + Number(r.total), 0);
+        });
+        const yLowVis = hours.map(h => {
+            return d.filter(x => x.hour === h && x.volume_group === 'ALTA').reduce((s, r) => s + Number(r.low_vis_count), 0);
+        });
+        Plotly.newPlot('vis-traffic-profile', [
+            { x: hours.map(h=>h+'h'), y: yTraffic, name: 'Vuelos ALTA', type: 'scatter', fill: 'tozeroy', marker: {color: '#979DAC'} },
+            { x: hours.map(h=>h+'h'), y: yLowVis, name: 'Reportes Baja Vis', type: 'scatter', mode: 'lines+markers', yaxis: 'y2', line: {color: THEME.colors.ALTA, width: 3} }
+        ], { 
+            ...layoutBase, title: 'Perfil Diario 24h (Tráfico ALTO)', 
+            yaxis: { ...layoutBase.yaxis, type: 'linear', title: 'Volumen Total' },
+            yaxis2: { title: 'Baja Vis', overlaying: 'y', side: 'right', showgrid: false, font: { color: THEME.colors.ALTA }, type: 'linear' }
+        }, {responsive: true});
+    };
+    ['vis-profile-airport', 'vis-profile-date-start', 'vis-profile-date-end'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', render);
     });
     render();
 }
 
 // 5. Cloud Amounts
+/**
+ * Renderiza la Evolución de Cobertura Nubosa (Gráfica 5).
+ * Muestra barras con la cantidad de horas en las que se reportó nubosidad significativa.
+ * Soporta selección múltiple de aeropuertos para superposición.
+ * @param {Array} data - JSON de agregación de nubosidad por mes y hora
+ */
 function setupCloudAmounts(data) {
     const selApt = document.getElementById('clouds-airport');
     const selMonths = document.getElementById('clouds-months');
     const render = () => {
         let d = data;
-        if(selApt.value !== 'Todos') d = d.filter(x => x.airport === selApt.value);
+        const selectedApts = Array.from(selApt.selectedOptions).map(opt => opt.value);
+        if (selectedApts.length > 0) d = d.filter(x => selectedApts.includes(x.airport));
         const selectedMonths = Array.from(selMonths.selectedOptions).map(opt => opt.value);
         const traces = selectedMonths.map(month => {
             const sub = d.filter(x => x.month_name === month);
@@ -322,12 +345,20 @@ function setupCloudAmounts(data) {
 }
 
 // 6. Monthly Evo (Continuous Line by Airport)
+/**
+ * Renderiza la Evolución Continua de Visibilidad y Temperatura (Gráfica 6).
+ * Grafica series de tiempo diarias en dos ejes (Visibilidad izquierda, Temp derecha).
+ * Forzamos los ejes a 'linear' para evitar que Plotly los agrupe categóricamente por error.
+ * Soporta selección múltiple de aeropuertos y genera dos trazas por aeropuerto (línea sólida para Vis, punteada para Temp).
+ * @param {Array} data - JSON horario
+ */
 function setupMonthlyEvo(data) {
     const selMonths = document.getElementById('evo-months');
     const selApt = document.getElementById('evo-airport');
     const render = () => {
         let d = data;
-        if(selApt.value !== 'Todos') d = d.filter(x => x.airport === selApt.value);
+        const selectedApts = Array.from(selApt.selectedOptions).map(opt => opt.value);
+        if (selectedApts.length > 0) d = d.filter(x => selectedApts.includes(x.airport));
         const selectedMonths = Array.from(selMonths.selectedOptions).map(opt => opt.value);
         
         d = d.filter(x => {

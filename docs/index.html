@@ -1,39 +1,75 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AeroMet Dashboard - Impacto Meteorológico en Operaciones</title>
-    
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
-    
+
     <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
     <!-- ECharts libraries for 3D Bar Charts -->
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/echarts-gl@2.0.9/dist/echarts-gl.min.js"></script>
-    
+
     <link rel="stylesheet" href="style.css">
     <style>
-        .phenomena-container { display: flex; align-items: center; justify-content: center; gap: 2rem; width: 100%; }
-        .data-table { border-collapse: collapse; width: 100%; font-size: 0.85rem; color: var(--text-secondary); background: var(--bg-main); border-radius: 8px; overflow: hidden;}
-        .data-table th, .data-table td { padding: 8px 12px; border-bottom: 1px solid var(--border-color); text-align: left; transition: background 0.3s; }
-        .data-table th { background: rgba(255,255,255,0.05); font-weight: 600; color: var(--text-primary); }
-        .multi-select { background: var(--bg-main); color: var(--text-primary); border: 1px solid var(--border-color); padding: 5px; height: 100px; border-radius: 6px; }
-        .table-responsive { overflow-x: auto; width: 100%; }
+        .phenomena-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 2rem;
+            width: 100%;
+        }
+
+        .data-table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            background: var(--bg-main);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border-color);
+            text-align: left;
+            transition: background 0.3s;
+        }
+
+        .data-table th {
+            background: rgba(255, 255, 255, 0.05);
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .multi-select {
+            background: var(--bg-main);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            padding: 5px;
+            height: 100px;
+            border-radius: 6px;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+            width: 100%;
+        }
     </style>
 </head>
+
 <body>
     <header class="navbar">
         <div class="logo">
-            <h1>AeroMet <span>Insights</span></h1>
+            <h1>AeroMet <a href="data/report_ai_context.json" download class="insight-link" title="Descargar Contexto IA (JSON)">Insights</a></h1>
             <p>Análisis Meteorológico METAR (2019)</p>
-        </div>
-        <div class="actions">
-            <a href="data/report_ai_context.json" download class="btn-download">
-                Descargar Contexto IA (JSON)
-            </a>
         </div>
     </header>
 
@@ -48,21 +84,28 @@
             <div class="chart-card full-width">
                 <div class="chart-header">
                     <h4>Gráfica 1: Fenómenos Meteorológicos Frecuentes</h4>
-                    <p class="chart-desc">Distribución porcentual. Se agrupan eventos menores al 10% en "Otros". (Consolidado Nacional)</p>
+                    <p class="chart-desc">Distribución porcentual. Se agrupan eventos menores al 10% en "Otros".
+                        (Consolidado Nacional)</p>
                 </div>
                 <div class="controls fade-in">
                     <select id="phenomena-airport" class="multi-select" multiple></select>
                     <select id="phenomena-months" class="multi-select" multiple></select>
                     <label class="checkbox-label" style="display:flex; align-items:center; gap:0.5rem; color:#f8fafc;">
                         <input type="checkbox" id="toggle-no-incident" checked>
-                        Incluir "Sin Incidentes"
+                        Incluir tiempo "Sin Incidentes"
                     </label>
                 </div>
                 <div class="phenomena-container">
                     <div id="phenomena-dist" style="width: 55%; height: 400px;"></div>
                     <div style="width: 40%;">
                         <table class="data-table" id="phenomena-table">
-                            <thead><tr><th>Fenómeno</th><th>Duración (Horas)</th><th>Proporción (%)</th></tr></thead>
+                            <thead>
+                                <tr>
+                                    <th>Fenómeno</th>
+                                    <th>Duración (Horas)</th>
+                                    <th>Proporción (%)</th>
+                                </tr>
+                            </thead>
                             <tbody></tbody>
                         </table>
                     </div>
@@ -79,7 +122,7 @@
                         <p class="chart-desc">Dirección e intensidad estacional del viento predominante.</p>
                     </div>
                     <div class="filters">
-                        <select id="wind-rose-airport" class="airport-select"><option value="Todos">Consolidado (Todos)</option></select>
+                        <select id="wind-rose-airport" class="multi-select" multiple></select>
                         <select id="wind-rose-months" class="multi-select" multiple></select>
                     </div>
                     <div id="wind-rose" class="chart-body"></div>
@@ -90,7 +133,9 @@
                         <p class="chart-desc">Relación entre la velocidad sostenida y ráfagas máximas según tráfico.</p>
                     </div>
                     <div class="filters" style="display:flex; gap:10px; flex-wrap:wrap;">
-                        <select id="gusts-airport" class="airport-select"><option value="Todos">Consolidado (Todos)</option></select>
+                        <select id="gusts-airport" class="airport-select">
+                            <option value="Todos">Consolidado (Todos)</option>
+                        </select>
                         <input type="date" id="gusts-date-start" class="airport-select" value="2019-01-01">
                         <input type="date" id="gusts-date-end" class="airport-select" value="2019-12-31">
                         <select id="gusts-time-start" class="airport-select"></select>
@@ -106,28 +151,39 @@
             <div class="chart-grid-2">
                 <div class="chart-card">
                     <div class="chart-header">
-                        <h4>Gráfica 4: Análisis de Visibilidad vs Tráfico</h4>
-                        <p class="chart-desc">Alternativa A (Heatmap) y Alternativa B (Perfil de Área).</p>
+                        <h4>Gráfica 4A: Mapa de Calor (Mes vs Hora)</h4>
+                        <p class="chart-desc">Proporción de incidentes de baja visibilidad por mes y hora.</p>
                     </div>
                     <div class="filters" style="display:flex; gap:10px; flex-wrap:wrap;">
-                        <select id="vis-airport" class="airport-select"><option value="Todos">Consolidado (Todos)</option></select>
-                        <select id="vis-chart-type" class="airport-select">
-                        <option value="heatmap">Mapa de Calor (Mes vs Hora)</option>
-                            <option value="area">Perfil Diario de 24h</option>
+                        <select id="vis-heatmap-airport" class="airport-select">
+                            <option value="Todos">Consolidado (Todos)</option>
                         </select>
-                        <input type="date" id="vis-date-start" class="airport-select" value="2019-01-01">
-                        <input type="date" id="vis-date-end" class="airport-select" value="2019-12-31">
                     </div>
+                    <div id="vis-traffic-heatmap" class="chart-body"></div>
+                </div>
 
-                    <div id="vis-traffic" class="chart-body"></div>
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h4>Gráfica 4B: Perfil Diario de 24h</h4>
+                        <p class="chart-desc">Volumen total vs reportes de baja visibilidad.</p>
+                    </div>
+                    <div class="filters" style="display:flex; gap:10px; flex-wrap:wrap;">
+                        <select id="vis-profile-airport" class="airport-select">
+                            <option value="Todos">Consolidado (Todos)</option>
+                        </select>
+                        <input type="date" id="vis-profile-date-start" class="airport-select" value="2019-01-01">
+                        <input type="date" id="vis-profile-date-end" class="airport-select" value="2019-12-31">
+                    </div>
+                    <div id="vis-traffic-profile" class="chart-body"></div>
                 </div>
                 <div class="chart-card">
                     <div class="chart-header">
                         <h4>Gráfica 5: Evolución Diaria de Cobertura Nubosa</h4>
-                        <p class="chart-desc">Cantidad de reportes de nubes por hora del día. Selecciona meses para comparar.</p>
+                        <p class="chart-desc">Cantidad de reportes de nubes por hora del día. Selecciona meses para
+                            comparar.</p>
                     </div>
                     <div class="filters" style="display:flex; gap:10px;">
-                        <select id="clouds-airport" class="airport-select"><option value="Todos">Consolidado (Todos)</option></select>
+                        <select id="clouds-airport" class="multi-select" multiple></select>
                         <select id="clouds-months" class="multi-select" multiple></select>
                     </div>
                     <div id="cloud-amounts" class="chart-body"></div>
@@ -143,7 +199,7 @@
                     <p class="chart-desc">Tendencias temporales continuas. Cada línea representa un Aeropuerto.</p>
                 </div>
                 <div class="filters" style="display:flex; gap:10px;">
-                    <select id="evo-airport" class="airport-select"><option value="Todos">Consolidado (Todos)</option></select>
+                    <select id="evo-airport" class="multi-select" multiple></select>
                     <select id="evo-months" class="multi-select" multiple></select>
                 </div>
                 <div id="monthly-evo" class="chart-body" style="height: 400px;"></div>
@@ -155,7 +211,9 @@
                     <p class="chart-desc">Interacción Temp vs Punto Rocío vs Visibilidad con agrupamiento dinámico.</p>
                 </div>
                 <div class="filters" style="display:flex; gap:10px; flex-wrap:wrap;">
-                    <select id="scatter3d-airport" class="airport-select"><option value="Todos">Consolidado (Todos)</option></select>
+                    <select id="scatter3d-airport" class="airport-select">
+                        <option value="Todos">Consolidado (Todos)</option>
+                    </select>
                     <input type="date" id="scatter3d-date-start" class="airport-select" value="2019-01-01">
                     <input type="date" id="scatter3d-date-end" class="airport-select" value="2019-12-31">
                     <select id="scatter3d-time-start" class="airport-select"></select>
@@ -181,7 +239,9 @@
                     <p class="chart-desc">Calendario Heatmap (8A) vs Coordenadas Paralelas (8B).</p>
                 </div>
                 <div class="filters" style="display:flex; gap:10px; flex-wrap:wrap;">
-                    <select id="radar-airport" class="airport-select"><option value="Todos">Comparativa Global (Todos)</option></select>
+                    <select id="radar-airport" class="airport-select">
+                        <option value="Todos">Comparativa Global (Todos)</option>
+                    </select>
                     <select id="radar-chart-type" class="airport-select">
                         <option value="heatmap">Calendario Heatmap Operativo</option>
                         <option value="parcoords">Coordenadas Paralelas</option>
@@ -200,18 +260,28 @@
             <div class="chart-card full-width">
                 <div class="chart-header">
                     <h4>Gráfica 9: Tabla Climatológica Semáforo</h4>
-                    <p class="chart-desc">Resumen térmico, fenómenos y horas de sol (Fuente: AEMET) con formato condicional de riesgo.</p>
+                    <p class="chart-desc">Resumen térmico, fenómenos y horas de sol (Fuente: AEMET) con formato
+                        condicional de riesgo.</p>
                 </div>
                 <div class="filters">
-                    <select id="climate-airport" class="airport-select"><option value="Todos">Todos</option></select>
+                    <select id="climate-airport" class="airport-select">
+                        <option value="Todos">Todos</option>
+                    </select>
                 </div>
                 <div class="table-responsive" style="margin-top: 1rem;">
                     <table class="data-table" id="climate-table">
                         <thead>
                             <tr>
-                                <th>Mes</th><th>T. Media (ºC)</th><th>T. Max (ºC)</th><th>T. Min (ºC)</th>
-                                <th>Días Nieve</th><th>Días Tormenta</th><th>Días Helada</th><th>Días Niebla</th>
-                                <th>Días Lluvia</th><th>Horas de Sol</th>
+                                <th>Mes</th>
+                                <th>T. Media (ºC)</th>
+                                <th>T. Max (ºC)</th>
+                                <th>T. Min (ºC)</th>
+                                <th>Días Nieve</th>
+                                <th>Días Tormenta</th>
+                                <th>Días Helada</th>
+                                <th>Días Niebla</th>
+                                <th>Días Lluvia</th>
+                                <th>Horas de Sol</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
@@ -252,7 +322,9 @@
                         <p class="chart-desc">Boxplot agrupado por las 24 horas del día.</p>
                     </div>
                     <div class="filters">
-                        <select id="boxplot-airport" class="airport-select"><option value="Todos">Consolidado (Todos)</option></select>
+                        <select id="boxplot-airport" class="airport-select">
+                            <option value="Todos">Consolidado (Todos)</option>
+                        </select>
                         <input type="date" id="boxplot-date-start" class="airport-select" value="2019-01-01">
                         <input type="date" id="boxplot-date-end" class="airport-select" value="2019-12-31">
                     </div>
@@ -264,7 +336,9 @@
                         <p class="chart-desc">Distribución porcentual térmica por horas del día (100% Stacked Bar).</p>
                     </div>
                     <div class="filters">
-                        <select id="temp-stack-airport" class="airport-select"><option value="Todos">Consolidado (Todos)</option></select>
+                        <select id="temp-stack-airport" class="airport-select">
+                            <option value="Todos">Consolidado (Todos)</option>
+                        </select>
                         <input type="date" id="temp-stack-date-start" class="airport-select" value="2019-01-01">
                         <input type="date" id="temp-stack-date-end" class="airport-select" value="2019-12-31">
                     </div>
@@ -281,7 +355,9 @@
                     <p class="chart-desc">Distribución agrupada en sectores de 30º, incluyendo Calma.</p>
                 </div>
                 <div class="filters">
-                    <select id="wind-dir-airport" class="airport-select"><option value="Todos">Consolidado (Todos)</option></select>
+                    <select id="wind-dir-airport" class="airport-select">
+                        <option value="Todos">Consolidado (Todos)</option>
+                    </select>
                     <input type="date" id="wind-dir-date-start" class="airport-select" value="2019-01-01">
                     <input type="date" id="wind-dir-date-end" class="airport-select" value="2019-12-31">
                 </div>
@@ -291,20 +367,25 @@
 
         <section class="dashboard-section">
             <h3 class="section-title">9. Gran Visor Tridimensional Interactivo (GL)</h3>
-            <p style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.9rem;">Interactúa arrastrando el ratón para rotar la cámara y explorar los intervalos superpuestos a distintas horas.</p>
-            
+            <p style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.9rem;">Interactúa arrastrando el
+                ratón para rotar la cámara y explorar los intervalos superpuestos a distintas horas.</p>
+
             <div class="chart-card full-width">
                 <div class="chart-header">
                     <h4>Gráficas 12, 13 y 14: Entorno Operativo 3D</h4>
-                    <p class="chart-desc">Frecuencia absoluta organizada por tramos y horas del día. Selecciona la métrica a visualizar.</p>
+                    <p class="chart-desc">Frecuencia absoluta organizada por tramos y horas del día. Selecciona la
+                        métrica a visualizar.</p>
                 </div>
                 <div class="filters" style="display:flex; gap:10px; flex-wrap:wrap;">
-                    <select id="visor3d-metric" class="airport-select" style="background-color: var(--bg-main); border-color: #48CAE4;">
+                    <select id="visor3d-metric" class="airport-select"
+                        style="background-color: var(--bg-main); border-color: #48CAE4;">
                         <option value="clouds">Techos de Nubes</option>
                         <option value="vis">Visibilidad General</option>
                         <option value="rvr">Simulación Intervalos RVR</option>
                     </select>
-                    <select id="visor3d-airport" class="airport-select"><option value="Todos">Consolidado (Todos)</option></select>
+                    <select id="visor3d-airport" class="airport-select">
+                        <option value="Todos">Consolidado (Todos)</option>
+                    </select>
                     <input type="date" id="visor3d-date-start" class="airport-select" value="2019-01-01">
                     <input type="date" id="visor3d-date-end" class="airport-select" value="2019-12-31">
                 </div>
@@ -314,6 +395,7 @@
         </section>
 
     </main>
-    <script src="app.js?v=8"></script>
+    <script src="app.js?v=9"></script>
 </body>
+
 </html>

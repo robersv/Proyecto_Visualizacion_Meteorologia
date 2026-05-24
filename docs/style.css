@@ -42,7 +42,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1.5rem 3rem;
+    padding: 1.2rem 3rem;
     background-color: var(--bg-card);
     border-bottom: 1px solid var(--border-color);
     position: sticky;
@@ -56,8 +56,14 @@ body {
     letter-spacing: -0.5px;
 }
 
-.logo span {
+.insight-link {
     color: var(--accent-wind);
+    text-decoration: none;
+    transition: text-shadow 0.2s;
+}
+
+.insight-link:hover {
+    text-shadow: 0 0 8px var(--accent-wind);
 }
 
 .logo p {
