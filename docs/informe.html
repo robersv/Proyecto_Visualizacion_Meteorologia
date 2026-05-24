@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AeroMet - Informe Técnico Analítico</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+    <!-- ECharts libraries for 3D Bar Charts -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts-gl@2.0.9/dist/echarts-gl.min.js"></script>
+
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Estilos específicos para la visualización del informe técnico */
+        .report-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .report-card {
+            background-color: var(--bg-card);
+            border-radius: 12px;
+            padding: 3rem;
+            border: 1px solid var(--border-color);
+            margin-bottom: 3rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .report-header {
+            margin-bottom: 3rem;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 2.5rem;
+            text-align: center;
+        }
+
+        .report-title {
+            font-size: 2.2rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            line-height: 1.3;
+            background: linear-gradient(135deg, var(--text-primary), var(--accent-wind));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .report-meta {
+            display: flex;
+            justify-content: center;
+            gap: 2.5rem;
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            flex-wrap: wrap;
+            margin-top: 1.5rem;
+        }
+
+        .report-meta span {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .report-meta strong {
+            color: var(--text-primary);
+        }
+
+        .report-section {
+            margin-bottom: 3.5rem;
+        }
+
+        .report-section h3 {
+            font-size: 1.6rem;
+            color: var(--accent-wind-light);
+            margin-top: 2.5rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .report-section h4 {
+            font-size: 1.25rem;
+            color: var(--text-primary);
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .report-paragraph {
+            font-size: 1.05rem;
+            line-height: 1.8;
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+            text-align: justify;
+        }
+
+        .report-list {
+            margin-left: 2rem;
+            margin-bottom: 1.5rem;
+            color: var(--text-secondary);
+            font-size: 1.05rem;
+            line-height: 1.8;
+        }
+
+        .report-list li {
+            margin-bottom: 0.5rem;
+        }
+
+        .report-quote {
+            border-left: 4px solid var(--accent-wind);
+            background: rgba(72, 202, 228, 0.05);
+            padding: 1.5rem 2rem;
+            border-radius: 0 8px 8px 0;
+            margin: 2rem 0;
+            font-style: italic;
+        }
+
+        /* Estilo para las gráficas incrustadas en el informe */
+        .chart-card-report {
+            background-color: var(--bg-main);
+            border-radius: 12px;
+            padding: 2rem;
+            border: 1px solid var(--border-color);
+            margin: 2.5rem 0;
+            display: flex;
+            flex-direction: column;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .chart-card-report .chart-header {
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 1rem;
+        }
+
+        .chart-card-report h5 {
+            font-size: 1.15rem;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .chart-card-report .chart-desc {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .chart-card-report .filters {
+            margin-bottom: 1.5rem;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .chart-card-report .chart-body {
+            min-height: 380px;
+            width: 100%;
+        }
+
+        .phenomena-container-report {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 2rem;
+            width: 100%;
+            flex-wrap: wrap;
+        }
+
+        .phenomena-chart-wrapper {
+            flex: 1 1 50%;
+            min-width: 300px;
+        }
+
+        .phenomena-table-wrapper {
+            flex: 1 1 40%;
+            min-width: 280px;
+        }
+
+        /* Tabla del informe */
+        .data-table-report {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            background: var(--bg-main);
+            border-radius: 8px;
+            overflow: hidden;
+            margin: 2rem 0;
+            border: 1px solid var(--border-color);
+        }
+
+        .data-table-report th,
+        .data-table-report td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+            text-align: left;
+        }
+
+        .data-table-report th {
+            background: rgba(255, 255, 255, 0.05);
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .data-table-report tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .multi-select {
+            background: var(--bg-main);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            padding: 5px;
+            height: 100px;
+            border-radius: 6px;
+            font-family: inherit;
+        }
+
+        .airport-select {
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #f8fafc;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <header class="navbar">
+        <div class="logo">
+            <h1>AeroMet <a href="data/report_ai_context.json" download class="insight-link" title="Descargar Contexto IA (JSON)">Insights</a></h1>
+            <p>Análisis Meteorológico METAR (2019)</p>
+        </div>
+        <div class="nav-links" style="display: flex; gap: 1rem; align-items: center;">
+            <a href="index.html" class="btn-download" style="background: transparent; border: 1px solid var(--accent-wind); color: var(--accent-wind);">Ver Dashboard</a>
+        </div>
+    </header>
+
+    <main class="report-container">
+        <article class="report-card">
+            <header class="report-header">
+                <h2 class="report-title">Impacto de las Condiciones Meteorológicas (METAR) en las Operaciones Aeroportuarias de España sobre los datos de 2019</h2>
+                <div class="report-meta">
+                    <span>Autor: <strong>Roberto Sánchez Vilariño</strong></span>
+                    <span>Expediente: <strong>225i1022</strong></span>
+                    <span>Estudio: <strong>Master en Industria 4.0</strong></span>
+                    <span>Fecha: <strong>Madrid, Abril 2026</strong></span>
+                </div>
+            </header>
+
+            <!-- SECCIÓN 1 -->
+            <section class="report-section">
+                <h3>Resumen Ejecutivo e Introducción</h3>
+                <p class="report-paragraph">
+                    En la navegación aérea, la integridad operativa confía en la obtención y entendimiento de datos sobre el clima que permiten entender los fenómenos meteorológicos y pronosticar el clima a partir de los datos históricos. Aquí, los reportes METAR (Meteorological Aerodrome Report) se consolidan como un activo fundamental y su entendimiento un factor crítico para su aprovechamiento. En este trabajo procuramos trascender la información suministrada por METAR en valor para la operación de los aeropuertos.
+                </p>
+                <p class="report-paragraph">
+                    El objetivo de este informe es evaluar el impacto multidimensional de las variables meteorológicas en el tráfico aéreo español durante el ciclo anual 2019. Bajo el marco normativo de la UNE-EN ISO 9000:2015 y la ISO 8000-150, se analiza la calidad, exactitud y relevancia de los datos, transformando registros semiestructurados en inteligencia de negocio capaz de cuantificar la disrupción climática en la capacidad aeroportuaria.
+                </p>
+                <p class="report-paragraph">
+                    Para efectos de simplificar los análisis y ampliar el potencial de la información, los gráficos aquí desarrollados se pueden consultar dinámicamente en este portal:
+                    <a href="index.html" class="insight-link">AeroMet Dashboard Interactivo</a>.
+                </p>
+            </section>
+
+            <!-- SECCIÓN 2 -->
+            <section class="report-section">
+                <h3>Metodología y Arquitectura</h3>
+                <p class="report-paragraph">
+                    La arquitectura del proyecto se fundamenta en un ciclo de vida del dato diseñado para incrementar la resiliencia sobre la variabilidad de los datos y una latencia mínima en su presentación.
+                </p>
+
+                <h4>Patrón de Diseño: Pre-agregación y Presentación</h4>
+                <p class="report-paragraph">
+                    Para que la aplicación funcione de manera muy fluida, se decidió implementar un esquema de preparación y organización de datos (ETL) en background que realiza los cálculos complejos, el resumen algorítmico y la estructuración de la información, delegando la parte visual de paquetes de datos en formato JSON para mostrar las gráficas.
+                </p>
+
+                <h4>Procesamiento Lambda: Batch vs. Hot Path</h4>
+                <p class="report-paragraph">
+                    Se adoptó una arquitectura híbrida para satisfacer distintos niveles de criticidad:
+                </p>
+                <ul class="report-list">
+                    <li><strong>Capa de Lote (Batch/Cold Path):</strong> Procesa datos históricos para el cumplimiento de la norma ISO 9000:2015, generando modelos de varianza y tendencias térmicas anuales.</li>
+                    <li><strong>Capa de Velocidad (Hot Path/Streaming):</strong> Permite la reacción inmediata ante cambios meteorológicos externos. Esta "rama caliente" es vital para la gestión de crisis, similar a los sistemas de control de fraude bancario o estabilidad de redes energéticas, donde un retraso de cinco minutos invalida la utilidad del dato.</li>
+                </ul>
+
+                <h4>Identificación de Parámetros Críticos y Calidad del Dato</h4>
+                <p class="report-paragraph">
+                    Conforme a los roles definidos en la ISO 8000-150 (Gestor, Administrador y Técnico de Datos), se identificaron parámetros cuya precisión es intrínseca a la seguridad operacional:
+                </p>
+                <ul class="report-list">
+                    <li><strong>Termodinámicos:</strong> Temperatura y Punto de Rocío (Dew Point) para el cálculo de saturación.</li>
+                    <li><strong>Dinámicos:</strong> Intensidad (nudos) y Dirección (grados) del viento.</li>
+                    <li><strong>Visibilidad y Techo:</strong> Visibilidad horizontal (km) y cobertura nubosa (OVC/BKN).</li>
+                </ul>
+
+                <p class="report-paragraph">
+                    <strong>El Campo "Characteristic":</strong> Un hallazgo crítico en la revisión de los datos reveló que la ingesta original omitía el mapeo de la columna de "característica". Esto provocaba que fenómenos complejos como tormentas fuertes con lluvia (+TSRA) fueran invisibles (retornando 0 incidentes), requiriendo una refactorización para la concatenación analítica de las columnas de fenómenos.
+                </p>
+
+                <p class="report-paragraph">
+                    <strong>Desafío del Sesgo de Mayoría:</strong> Dado que el 80% del tiempo aeronáutico es "Sin incidentes" (CAVOK - Ceiling and Visibility OK), AeroMet aplica un aislamiento de tiempo pasivo para evitar que la climatología benigna enanice visualmente los eventos extremos, garantizando que el análisis se centre en la disrupción real, con la consecuencia indirecta de la magnificación de los eventos climáticos. Es por ello que para efecto de algunos de estos análisis es necesario distinguir cuándo estamos analizando los datos considerando CAVOK o no.
+                </p>
+
+                <p class="report-paragraph">
+                    <strong>Duplicidad de capas:</strong> Debido a la naturaleza de la información meteorológica, por ejemplo, si a las 02:00h un avión reporta nubes dispersas (SCT) a 2.000 pies y adicionalmente otro reporta nubes cerradas (BKN) a 8.000 pies, los datos suman bloques de tiempo con datos diferentes (como si hubieran pasado 2 horas reales en 1 hora de reloj), reflejando datos duales que afectan los análisis consolidados.
+                </p>
+
+                <p class="report-paragraph">
+                    <strong>Forzado de Escalas Lineales:</strong> En variables como Temperatura y Visibilidad Promedio, la presencia de decimales continuos provocaba que Plotly mapeara ejes como "categorías" discretas individuales en lugar de una escala continua. La fijación explícita de <code>type: 'linear'</code> resolvió esta anomalía visual en el renderizado.
+                </p>
+            </section>
+
+            <!-- SECCIÓN 3 -->
+            <section class="report-section">
+                <h3>Análisis Visual</h3>
+                <p class="report-paragraph">
+                    Las visualizaciones de AeroMet se categorizan según su propósito analítico y dimensiones técnicas:
+                </p>
+
+                <!-- SUBSECCIÓN EÓLICA -->
+                <h4 style="color: var(--accent-wind-light); border-bottom: 1px solid var(--border-color); padding-bottom: 0.25rem;">Comportamiento Eólico</h4>
+
+                <!-- GRÁFICA 2 EN INFORME -->
+                <div class="chart-card-report">
+                    <div class="chart-header">
+                        <h5>Gráfica 2: Rosa de los Vientos (Predominancia)</h5>
+                        <p class="chart-desc">Dirección e intensidad estacional del viento predominante.</p>
+                    </div>
+                    <div class="filters">
+                        <select id="wind-rose-airport" class="multi-select" multiple></select>
+                        <select id="wind-rose-months" class="multi-select" multiple></select>
+                    </div>
+                    <div id="wind-rose" class="chart-body" style="min-height: 450px;"></div>
+                </div>
+
+                <p class="report-paragraph">
+                    <strong>Gráfica 2 (Rosa de los Vientos):</strong> Gráfico polar de barras acumuladas y estriadas que proyecta la direccionalidad del viento dividida en 8 sectores cardinales principales (N, NE, E, SE, S, SW, W, NW) cruzada con su intensidad en nudos.
+                </p>
+                <p class="report-paragraph" style="margin-left: 2rem;">
+                    <em>Consideraciones:</em><br>
+                    * <strong>Bandas de Velocidad Operativas:</strong> La intensidad del viento se agrupó en 5 contenedores discretos (<code>0-5</code>, <code>5-10</code>, <code>10-15</code>, <code>15-20</code> y <code>20+</code> kt) utilizando un gradiente secuencial celeste-azul. Esta categorización permite identificar de forma visual e inmediata la severidad del viento y su orientación respecto a los ejes físicos de las pistas de los distintos aeropuertos para calcular el riesgo de viento cruzado.<br>
+                    * <strong>Filtro Estacional:</strong> Se agregaron multiselectores mensuales para analizar cómo cambian las corrientes dominantes estacionales a lo largo del año.
+                </p>
+
+                <!-- GRÁFICA 3 EN INFORME -->
+                <div class="chart-card-report">
+                    <div class="chart-header">
+                        <h5>Gráfica 3: Dispersión de Ráfagas (Knots)</h5>
+                        <p class="chart-desc">Relación entre la velocidad sostenida y ráfagas máximas según tráfico.</p>
+                    </div>
+                    <div class="filters">
+                        <select id="gusts-airport" class="airport-select">
+                            <option value="Todos">Consolidado (Todos)</option>
+                        </select>
+                        <input type="date" id="gusts-date-start" class="airport-select" value="2019-01-01">
+                        <input type="date" id="gusts-date-end" class="airport-select" value="2019-12-31">
+                        <select id="gusts-time-start" class="airport-select"></select>
+                        <select id="gusts-time-end" class="airport-select"></select>
+                    </div>
+                    <div id="wind-gusts" class="chart-body"></div>
+                </div>
+
+                <p class="report-paragraph">
+                    <strong>Gráfica 3 (Dispersión de Ráfagas):</strong> Grafica en el plano cartesiano (X = Hora del día de 00 a 23h, Y = Intensidad de la ráfaga máxima registrada en nudos) cada evento de viento racheado o fuerte.
+                </p>
+                <p class="report-paragraph" style="margin-left: 2rem;">
+                    <em>Consideraciones:</em><br>
+                    * <strong>Codificación de Tráfico Aéreo:</strong> Cada punto de distribución se colorea según el volumen de tráfico del aeropuerto en ese instante exacto (Rojo = Tráfico Alto, Naranja = Tráfico Medio, Verde = Tráfico Bajo), para facilitar la identificación de coincidencias entre ráfagas severas con horas punta de saturación de vuelos, detectando ventanas críticas de riesgo operacional.<br>
+                    * <strong>Control de Densidad:</strong> Se implementó una selección y filtrado dinámico para optimizar el rendimiento del renderizado en el navegador sin perder los puntos de varianza extrema.
+                </p>
+
+                <!-- GRÁFICA 11 EN INFORME -->
+                <div class="chart-card-report">
+                    <div class="chart-header">
+                        <h5>Gráfica 11: Frecuencia de Dirección del Viento</h5>
+                        <p class="chart-desc">Distribución agrupada en sectores de 30º, incluyendo Calma.</p>
+                    </div>
+                    <div class="filters">
+                        <select id="wind-dir-airport" class="airport-select">
+                            <option value="Todos">Consolidado (Todos)</option>
+                        </select>
+                        <input type="date" id="wind-dir-date-start" class="airport-select" value="2019-01-01">
+                        <input type="date" id="wind-dir-date-end" class="airport-select" value="2019-12-31">
+                    </div>
+                    <div id="wind-dir-chart" class="chart-body" style="min-height: 450px;"></div>
+                </div>
+
+                <p class="report-paragraph">
+                    <strong>Gráfica 11 (Radar de Frecuencia Direccional):</strong> Radar continuo de 360° que mapea la huella geográfica estacional de las corrientes.
+                </p>
+
+                <!-- SUBSECCIÓN VISIBILIDAD -->
+                <h4 style="color: var(--accent-wind-light); border-bottom: 1px solid var(--border-color); padding-bottom: 0.25rem; margin-top: 3rem;">Visibilidad y Nubosidad</h4>
+
+                <!-- GRÁFICA 4A EN INFORME -->
+                <div class="chart-card-report">
+                    <div class="chart-header">
+                        <h5>Gráfica 4A: Mapa de Calor (Mes vs Hora)</h5>
+                        <p class="chart-desc">Proporción de incidentes de baja visibilidad por mes y hora.</p>
+                    </div>
+                    <div class="filters">
+                        <select id="vis-heatmap-airport" class="airport-select">
+                            <option value="Todos">Consolidado (Todos)</option>
+                        </select>
+                    </div>
+                    <div id="vis-traffic-heatmap" class="chart-body"></div>
+                </div>
+
+                <p class="report-paragraph">
+                    <strong>Gráfica 4A (Heatmap de Tráfico Alto):</strong> Matriz (X: Horas, Y: Meses). El z-index (gradiente) calcula el porcentaje de baja visibilidad exclusivamente durante picos de Tráfico Alto.
+                </p>
+                <p class="report-paragraph" style="margin-left: 2rem;">
+                    <em>Consideraciones:</em> El valor numérico de la barra lateral derecha representa el Porcentaje (%) de incidencia de baja visibilidad. Matemáticamente, calcula qué proporción de los incidentes ocurrieron bajo ese bloque horario; es decir, toma el total de vuelos que ocurrieron en nivel de "Tráfico Alto" para ese mes y hora específicos, y muestra qué porcentaje de ellos se pudo ver afectado por la falta de visibilidad. (0 = Ninguno; valores altos = alto porcentaje de afectación).
+                </p>
+
+                <!-- GRÁFICA 4B EN INFORME -->
+                <div class="chart-card-report">
+                    <div class="chart-header">
+                        <h5>Gráfica 4B: Perfil Diario de 24h</h5>
+                        <p class="chart-desc">Volumen total vs reportes de baja visibilidad.</p>
+                    </div>
+                    <div class="filters">
+                        <select id="vis-profile-airport" class="airport-select">
+                            <option value="Todos">Consolidado (Todos)</option>
+                        </select>
+                        <input type="date" id="vis-profile-date-start" class="airport-select" value="2019-01-01">
+                        <input type="date" id="vis-profile-date-end" class="airport-select" value="2019-12-31">
+                    </div>
+                    <div id="vis-traffic-profile" class="chart-body"></div>
+                </div>
+
+                <p class="report-paragraph">
+                    <strong>Gráfica 4B (Perfil 24h):</strong> Gráfico continuo de doble eje Y que superpone el volumen de tráfico aéreo por hora del día frente a la cantidad absoluta de reportes de baja visibilidad (&lt;1000m). El área gris sombreada representa el volumen bruto de vuelos en tráfico alto (eje Y izquierdo). La línea roja representa la frecuencia absoluta de incidentes de visibilidad reducida (eje Y derecho). Esto resuelve la disparidad de magnitudes de ambas variables continuas, permitiendo evaluar visualmente si las curvas de niebla y de vuelos se cruzan críticamente a lo largo de las 24 horas.
+                </p>
+
+                <!-- GRÁFICA 5 EN INFORME -->
+                <div class="chart-card-report">
+                    <div class="chart-header">
+                        <h5>Gráfica 5: Riesgo Operativo por Altitud de Nubosidad</h5>
+                        <p class="chart-desc">Horas absolutas de afectación según la altura de la base de nubes. Filtra por aeropuerto, mes y altitud.</p>
+                    </div>
+                    <div class="filters">
+                        <select id="clouds-airport" class="multi-select" multiple></select>
+                        <select id="clouds-months" class="multi-select" multiple></select>
+                        <select id="clouds-altitude" class="multi-select" multiple></select>
+                    </div>
+                    <div id="cloud-heights" class="chart-body"></div>
+                </div>
+
+                <p class="report-paragraph">
+                    <strong>Gráfica 5 (Barras de Cobertura):</strong> Barras adyacentes que sumarizan horas de afectación por techos bajos (OVC/BKN/CB). Cuantifica en horas absolutas la presencia de nubosidad significativa por hora del día, categorizada según su altitud en la base de nubes.
+                </p>
+                <p class="report-paragraph" style="margin-left: 2rem;">
+                    <em>Consideraciones:</em><br>
+                    * <strong>Filtrado por Altitud Operativa (Límite de 3000 pies):</strong> Se eliminaron de los datos todos los reportes de nubes por encima de los 3000 pies, por considerarlos irrelevantes para efectos de operación y asumir que puede ser un error de pre-procesamiento de los datos o carecer de disrupción en la aproximación visual.<br>
+                    * <strong>Definición de Bins Críticos:</strong> Las nubes (para coberturas de interés BKN, OVC, FEW, SCT) se dividieron en 4 rangos clave:
+                    1. <code>≤ 200 ft</code>: Límite crítico de aproximación de precisión de Categoría I (Procedimientos de Baja Visibilidad / LVP).
+                    2. <code>300 - 500 ft</code>
+                    3. <code>600 - 1000 ft</code>
+                    4. <code>1100 - 3000 ft</code><br>
+                    * <strong>Restricción de Selección Múltiple:</strong> El filtro de altitud permite añadir o quitar capas, pero mantiene la opción de <code>≤ 200 ft</code> siempre seleccionada y fija para garantizar que la métrica de mayor riesgo esté siempre visible en la gráfica.<br>
+                    * <strong>Desduplicación Temporal:</strong> En METARs que reportaban múltiples capas de nubes simultáneamente, el script de backend realiza una limpieza estricta por timestamp y bin de altura para evitar inflar artificialmente la suma de horas totales.
+                </p>
+
+                <!-- GRÁFICA 7 EN INFORME -->
+                <div class="chart-card-report">
+                    <div class="chart-header">
+                        <h5>Gráfica 7: Modelo 3D de Condiciones de Niebla</h5>
+                        <p class="chart-desc">Interacción Temp vs Punto Rocío vs Visibilidad con agrupamiento dinámico.</p>
+                    </div>
+                    <div class="filters">
+                        <select id="scatter3d-airport" class="airport-select">
+                            <option value="Todos">Consolidado (Todos)</option>
+                        </select>
+                        <input type="date" id="scatter3d-date-start" class="airport-select" value="2019-01-01">
+                        <input type="date" id="scatter3d-date-end" class="airport-select" value="2019-12-31">
+                        <select id="scatter3d-time-start" class="airport-select"></select>
+                        <select id="scatter3d-time-end" class="airport-select"></select>
+                        <select id="scatter3d-resolution" class="airport-select">
+                            <option value="30m">30 min (Crudo)</option>
+                            <option value="1h">1 Hora</option>
+                            <option value="3h">3 Horas</option>
+                            <option value="6h">6 Horas</option>
+                            <option value="12h">12 Horas</option>
+                            <option value="1d">1 Día</option>
+                        </select>
+                    </div>
+                    <div id="scatter-3d" class="chart-body" style="min-height: 500px;"></div>
+                </div>
+
+                <p class="report-paragraph">
+                    <strong>Gráfica 7 (Modelo 3D de Niebla):</strong> Representación tridimensional en la que se cruzan la Temperatura (eje X), el Punto de Rocío (eje Y) y la Visibilidad en metros (eje Z).
+                </p>
+                <p class="report-paragraph" style="margin-left: 2rem;">
+                    <em>Consideraciones:</em><br>
+                    * <strong>Espacio de Condensación:</strong> Codifica visualmente el punto físico donde el gradiente térmico de temperatura and punto de rocío colisionan (delta cero). En esta zona de convergencia, el color secuencial (escala Viridis) muestra la caída abrupta de la visibilidad (eje Z), modelando de forma tridimensional la formación física de bancos de niebla.<br>
+                    * <strong>Filtro de Resolución Temporal:</strong> Incorpora un selector de escala de tiempo (30 minutos, 1 hora, 3 horas, 6 horas, 12 horas, 1 día) que agrupa los puntos por promedios en tiempo real en el frontend, permitiendo reducir el ruido gráfico o detallar la varianza temporal de las observaciones.
+                </p>
+
+                <!-- SUBSECCIÓN VOLUMÉTRICA -->
+                <h4 style="color: var(--accent-wind-light); border-bottom: 1px solid var(--border-color); padding-bottom: 0.25rem; margin-top: 3rem;">Evolución y Modelos Volumétricos</h4>
+
+                <!-- GRÁFICA 6 EN INFORME -->
+                <div class="chart-card-report">
+                    <div class="chart-header">
+                        <h5>Gráfica 6: Evolución Diaria de Temperatura y Visibilidad</h5>
+                        <p class="chart-desc">Tendencias temporales continuas. Cada línea representa un Aeropuerto.</p>
+                    </div>
+                    <div class="filters">
+                        <select id="evo-airport" class="multi-select" multiple></select>
+                        <select id="evo-months" class="multi-select" multiple></select>
+                    </div>
+                    <div id="monthly-evo" class="chart-body"></div>
+                </div>
+
+                <p class="report-paragraph">
+                    <strong>Gráfica 6 (Evolución Visibilidad/Temperatura):</strong> Muestra la evolución promedio horaria de la visibilidad horizontal en kilómetros (línea sólida, eje Y izquierdo) y la temperatura ambiente en ºC (línea punteada, eje Y derecho).
+                </p>
+                <p class="report-paragraph" style="margin-left: 2rem;">
+                    <em>Consideraciones:</em><br>
+                    * <strong>Comparación Multi-Aeropuerto:</strong> Soporta la selección múltiple de aeropuertos de manera simultánea para contrastar firmas meteorológicas diurnas.<br>
+                    * <strong>Prevención de Saltos Categóricos:</strong> Se forzó a nivel de eje el parámetro <code>type: 'linear'</code>. Esto evita que las diferencias numéricas decimales promedio de visibilidad y temperatura sean interpretadas como texto discreto por el motor de Plotly, garantizando trazos lineales continuos reales.
+                </p>
+
+                <!-- GRÁFICAS 12, 13 Y 14 EN INFORME -->
+                <div class="chart-card-report">
+                    <div class="chart-header">
+                        <h5>Gráficas 12, 13 y 14: Entorno Operativo 3D</h5>
+                        <p class="chart-desc">Frecuencia absoluta organizada por tramos y horas del día. Selecciona la métrica a visualizar.</p>
+                    </div>
+                    <div class="filters">
+                        <select id="visor3d-metric" class="airport-select" style="background-color: var(--bg-main); border-color: #48CAE4;">
+                            <option value="clouds">Techos de Nubes</option>
+                            <option value="vis">Visibilidad General</option>
+                            <option value="rvr">Simulación Intervalos RVR</option>
+                        </select>
+                        <select id="visor3d-airport" class="airport-select">
+                            <option value="Todos">Consolidado (Todos)</option>
+                        </select>
+                        <input type="date" id="visor3d-date-start" class="airport-select" value="2019-01-01">
+                        <input type="date" id="visor3d-date-end" class="airport-select" value="2019-12-31">
+                    </div>
+                    <div id="visor-3d-gl" class="chart-body" style="min-height: 480px;"></div>
+                </div>
+
+                <p class="report-paragraph">
+                    <strong>Gráficas 12, 13 y 14 (Matrices de Riesgo 3D):</strong> Tres matrices tridimensionales interactivas consolidadas en una sola interfaz mediante un selector métrico. Los ejes representan la Hora del día (X), los Bins de categorización (Y) y la Frecuencia acumulada (Z). Permite una visualización espacial volumétrica del comportamiento climatológico a lo largo del día y los rangos de riesgo físico del aeródromo de forma altamente interactiva.
+                </p>
+                <p class="report-paragraph" style="margin-left: 2rem;">
+                    <em>Consideraciones:</em><br>
+                    * <strong>Techos de Nubes (Gráfica 12):</strong> Agrupa la base de nubes en bins críticos (<code>&lt;30m</code>, <code>&lt;60m</code>, <code>&lt;150m</code>, <code>&lt;300m</code>, <code>&gt;300m</code>).<br>
+                    * <strong>Visibilidad de Cabecera (Gráfica 13):</strong> Segmenta los rangos visuales horizontales (<code>&lt;800m</code>, <code>&lt;1500m</code>, <code>&lt;3000m</code>, <code>&lt;5000m</code>, <code>&gt;5000m</code>).<br>
+                    * <strong>Simulador RVR (Gráfica 14):</strong> Modela el Rango Visual de Pista según umbrales OACI (<code>&lt;50m</code>, <code>&lt;200m</code>, <code>&lt;350m</code>, <code>&lt;550m</code>, <code>&lt;1500m</code>, <code>&gt;1500m</code>).
+                </p>
+
+                <!-- SUBSECCIÓN ESTADÍSTICA -->
+                <h4 style="color: var(--accent-wind-light); border-bottom: 1px solid var(--border-color); padding-bottom: 0.25rem; margin-top: 3rem;">Estadística y Tendencias</h4>
+
+                <!-- GRÁFICA 8 EN INFORME -->
+                <div class="chart-card-report">
+                    <div class="chart-header">
+                        <h5>Gráfica 8: Perfil de Riesgo (Comparativa de Factores Críticos)</h5>
+                        <p class="chart-desc">Calendario Heatmap vs Coordenadas Paralelas.</p>
+                    </div>
+                    <div class="filters">
+                        <select id="radar-airport" class="airport-select">
+                            <option value="Todos">Comparativa Global (Todos)</option>
+                        </select>
+                        <select id="radar-chart-type" class="airport-select">
+                            <option value="heatmap">Calendario Heatmap Operativo</option>
+                            <option value="parcoords">Coordenadas Paralelas</option>
+                        </select>
+                        <input type="date" id="radar-date-start" class="airport-select" value="2019-01-01">
+                        <input type="date" id="radar-date-end" class="airport-select" value="2019-12-31">
+                        <select id="radar-time-start" class="airport-select"></select>
+                        <select id="radar-time-end" class="airport-select"></select>
+                    </div>
+                    <div id="radar-cond" class="chart-body" style="min-height: 420px;"></div>
+                </div>
+
+                <p class="report-paragraph">
+                    <strong>Gráfica 8 (Parcoords de Tormentas / Perfil de Riesgo):</strong> Gráfico interactivo multivariable de Coordenadas Paralelas (o en su defecto, Heatmap compuesto) que mapea de forma integrada 5 riesgos meteorológicos: Baja Visibilidad, Vientos Fuertes, Techos Bajos, Presencia de Lluvia y Presencia de Niebla. Permite aislar líneas individuales de eventos y seguir su comportamiento multidimensional para determinar si existe correlación mutua (por ejemplo, si los techos bajos y la baja visibilidad coinciden sistemáticamente con condiciones de lluvia).
+                </p>
+
+                <!-- GRÁFICA 9 EN INFORME -->
+                <div class="chart-card-report">
+                    <div class="chart-header">
+                        <h5>Gráfica 9: Tabla Climatológica Semáforo</h5>
+                        <p class="chart-desc">Resumen térmico, fenómenos y horas de sol con formato condicional de riesgo.</p>
+                    </div>
+                    <div class="filters">
+                        <select id="climate-airport" class="airport-select"></select>
+                    </div>
+                    <div style="overflow-x: auto; width: 100%;">
+                        <table class="data-table-report" id="climate-table">
+                            <thead>
+                                <tr>
+                                    <th>Mes</th>
+                                    <th>T. Media (ºC)</th>
+                                    <th>T. Max (ºC)</th>
+                                    <th>T. Min (ºC)</th>
+                                    <th>Días Nieve</th>
+                                    <th>Días Tormenta</th>
+                                    <th>Días Helada</th>
+                                    <th>Días Niebla</th>
+                                    <th>Días Lluvia</th>
+                                    <th>Horas de Sol</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <p class="report-paragraph">
+                    <strong>Gráfica 9 (Tabla Climatológica Semáforo):</strong> Resumen térmico, recuento de días de fenómenos específicos y horas de insolación estimadas mensuales para el aeropuerto de estudio, con formato condicional de sombreado según severidad.
+                </p>
+
+                <!-- GRÁFICA 10 EN INFORME -->
+                <div class="chart-card-report">
+                    <div class="chart-header">
+                        <h5>Gráfica 10: Pulso Térmico Horario</h5>
+                        <p class="chart-desc">Boxplot agrupado por las 24 horas del día.</p>
+                    </div>
+                    <div class="filters">
+                        <select id="boxplot-airport" class="airport-select">
+                            <option value="Todos">Consolidado (Todos)</option>
+                        </select>
+                        <input type="date" id="boxplot-date-start" class="airport-select" value="2019-01-01">
+                        <input type="date" id="boxplot-date-end" class="airport-select" value="2019-12-31">
+                    </div>
+                    <div id="temp-boxplot" class="chart-body"></div>
+                </div>
+
+                <p class="report-paragraph">
+                    <strong>Gráfica 10 (Boxplot Térmico):</strong> Conjunto de 24 cajas y bigotes que segmentan las mediciones de temperatura observadas a lo largo de todo el año por hora del día y los “outliers” (datos fuera de rango). Permite analizar estadísticamente la mediana, los límites del primer y tercer cuartil, la varianza horaria y los valores extremos atípicos (outliers) de la temperatura del aire a lo largo de las 24 horas del día.
+                </p>
+
+                <!-- GRÁFICA 15 EN INFORME -->
+                <div class="chart-card-report">
+                    <div class="chart-header">
+                        <h5>Gráfica 15: Frecuencia Relativa de Intervalos Térmicos</h5>
+                        <p class="chart-desc">Distribución porcentual térmica por horas del día (100% Stacked Bar).</p>
+                    </div>
+                    <div class="filters">
+                        <select id="temp-stack-airport" class="airport-select">
+                            <option value="Todos">Consolidado (Todos)</option>
+                        </select>
+                        <input type="date" id="temp-stack-date-start" class="airport-select" value="2019-01-01">
+                        <input type="date" id="temp-stack-date-end" class="airport-select" value="2019-12-31">
+                    </div>
+                    <div id="temp-stack-chart" class="chart-body"></div>
+                </div>
+
+                <p class="report-paragraph">
+                    <strong>Gráfica 15 (Intervalos Térmicos):</strong> Barras apiladas normalizadas al 100% que muestran el "share" o cuota porcentual de rangos térmicos por hora del día. Se agrupan las temperaturas en intervalos de 5ºC (desde <code>&lt;-10ºC</code> hasta <code>&gt;40ºC</code>). Al normalizar cada columna horaria al 100%, permite comparar la probabilidad relativa de experimentar una determinada franja de temperatura en diferentes horas de la jornada, independientemente del total bruto de lecturas.
+                </p>
+
+                <!-- GRÁFICA 1 EN INFORME -->
+                <div class="chart-card-report">
+                    <div class="chart-header">
+                        <h5>Gráfica 1: Fenómenos Meteorológicos Frecuentes</h5>
+                        <p class="chart-desc">Distribución porcentual absoluta de fenómenos meteorológicos.</p>
+                    </div>
+                    <div class="filters">
+                        <select id="phenomena-airport" class="multi-select" multiple></select>
+                        <select id="phenomena-months" class="multi-select" multiple></select>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="toggle-no-incident" checked>
+                            Incluir tiempo "Sin Incidentes"
+                        </label>
+                    </div>
+                    <div class="phenomena-container-report">
+                        <div class="phenomena-chart-wrapper">
+                            <div id="phenomena-dist" style="height: 380px; width: 100%;"></div>
+                        </div>
+                        <div class="phenomena-table-wrapper">
+                            <table class="data-table-report" id="phenomena-table" style="margin: 0;">
+                                <thead>
+                                    <tr>
+                                        <th>Fenómeno</th>
+                                        <th>Duración (Horas)</th>
+                                        <th>Proporción (%)</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="report-paragraph">
+                    <strong>Gráfica 1 (Gráfico de Torta de Fenómenos):</strong> Muestra la proporción temporal absoluta de los fenómenos meteorológicos registrados en los METAR para el aeropuerto, mes(es) y condiciones de filtrado seleccionadas. Se compone de un gráfico circular de tipo dona interactivo y una tabla adyacente que detalla el acumulado en horas y porcentaje.
+                </p>
+                <p class="report-paragraph" style="margin-left: 2rem;">
+                    <em>Consideraciones:</em> Se introdujo un control dinámico que permite filtrar y ocultar los reportes de "Sin incidentes" (CAVOK o tiempo despejado). Dado que el clima pacífico representa la inmensa mayoría del tiempo de operación, ocultarlo permite magnificar y centrar el análisis exclusivamente en el espectro de tiempo adverso.
+                </p>
+
+                <!-- GRÁFICA 16 EN INFORME -->
+                <div class="chart-card-report">
+                    <div class="chart-header">
+                        <h5>Gráfica 16: Evolución Temporal de Fenómenos Significativos</h5>
+                        <p class="chart-desc">Serie de tiempo categorizada con agrupación dinámica.</p>
+                    </div>
+                    <div class="filters">
+                        <select id="macro-phen-airport" class="multi-select" multiple></select>
+                        <select id="macro-phen-type" class="airport-select">
+                            <option value="Precipitación">Precipitación</option>
+                            <option value="Tormenta">Tormenta</option>
+                            <option value="Visibilidad">Visibilidad (Niebla/Bruma)</option>
+                        </select>
+                        <input type="date" id="macro-phen-date-start" class="airport-select" value="2019-01-01">
+                        <input type="date" id="macro-phen-date-end" class="airport-select" value="2019-12-31">
+                        <select id="macro-phen-res" class="airport-select">
+                            <option value="day">Por Día</option>
+                            <option value="week">Por Semana</option>
+                            <option value="month">Por Mes</option>
+                        </select>
+                    </div>
+                    <div id="macro-phen-chart" class="chart-body"></div>
+                </div>
+
+                <p class="report-paragraph">
+                    <strong>Gráfica 16 (Macro-Fenómenos):</strong> Gráfico de barras temporales agrupadas que cuantifica la duración acumulada en horas de fenómenos meteorológicos significativos.
+                </p>
+                <p class="report-paragraph" style="margin-left: 2rem;">
+                    <em>Consideraciones:</em><br>
+                    * <strong>Procesamiento de Agrupación (Mapeo Backend):</strong> Los códigos y textos de los METAR originales se clasificaron algorítmicamente en la tubería Python en 4 macro-categorías: <code>Precipitación</code> (RA, SN, GR, GS), <code>Tormenta</code> (TS), <code>Visibilidad</code> (FG, BR, HZ) and <code>Otros</code>.<br>
+                    * <strong>Resampling Temporal Dinámico:</strong> En el frontend, el usuario puede seleccionar la granularidad del análisis temporal (por Semanas, Meses o Trimestres) y aplicar filtros de rango de fechas. Esto suaviza el ruido gráfico diario para mostrar claramente las macrotendencias estacionales del clima adverso en cada aeropuerto.
+                </p>
+            </section>
+
+            <!-- SECCIÓN 4 -->
+            <section class="report-section">
+                <h3>Correlación con el Tráfico y Hallazgos Técnicos</h3>
+                <p class="report-paragraph">
+                    La integración de variables exógenas (volumen de tráfico) es un diferenciador clave en el análisis que nos interesa de cara a este proyecto. En la Gráfica 4A, el filtrado estricto por Tráfico Alto revela que aunque la baja visibilidad actúa como un reductor matemático de la capacidad de pista, obligando a procedimientos LVP (Low Visibility Procedures) que ralentizan la rotación de aeronaves, la incidencia para la mayoría de los aeropuertos es menor y focalizada, existiendo algunos aeropuertos donde la incidencia es nula a lo largo del 2019. Asimismo, la Gráfica 3 evidencia que los episodios de viento cruzado no son críticos per se, sino cuando su ocurrencia coincide con los picos de saturación operativa, donde la resiliencia del sistema se pone a prueba.
+                </p>
+            </section>
+
+            <!-- SECCIÓN 5 -->
+            <section class="report-section">
+                <h3>Análisis Comparativo e Inter-Aeropuertos</h3>
+                <p class="report-paragraph">
+                    El análisis de la "cuota de mercado térmica" (Gráfica 15) y las horas de nubosidad significativa (Gráfica 5) permite establecer comparativas de eficiencia entre sedes. Inspirado en la plataforma Dolphin de Bosch para la estandarización de procesos globales, se propone el uso de "Reglas de Asociación" para descubrir cómo parámetros idénticos generan respuestas operativas distintas según la geografía. Esta estandarización permite a la red aeroportuaria unificar criterios de calidad de datos, independientemente del proveedor de hardware local.
+                </p>
+            </section>
+
+            <!-- SECCIÓN 6 -->
+            <section class="report-section">
+                <h3>Evolución Temporal y Gestión de Fenómenos Extremos</h3>
+                <p class="report-paragraph">
+                    La variabilidad se monitorea mediante la "huella temporal" del riesgo en las matrices 3D (12-14), permitiendo a los gestores identificar ventanas de vulnerabilidad minuto a minuto. La gestión de tormentas requirió una "Concatenación Analítica" en el pipeline de datos para fusionar columnas de fenómenos y características, resolviendo la invisibilidad de códigos como +TSRA. En cuanto a la niebla, el Modelo 3D (Gráfica 7) actúa como predictor físico: cuando la convergencia térmica entre temperatura y rocío se acelera, el sistema activa alertas visuales proactivas.
+                </p>
+            </section>
+
+            <!-- SECCIÓN 7 -->
+            <section class="report-section">
+                <h3>Conclusiones y Lecciones Aprendidas</h3>
+                
+                <table class="data-table-report">
+                    <thead>
+                        <tr>
+                            <th>Problema Identificado</th>
+                            <th>Solución Técnica Implementada</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Datos numéricos interpretados como categorías (efecto escalera).</strong></td>
+                            <td>Inyección de <code>type: 'linear'</code> en configuraciones de yaxis para forzar cálculo proporcional.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Fenómenos complejos (+TSRA) invisibles en ingesta original.</strong></td>
+                            <td>Refactorización de <code>data_pipeline.py</code> para concatenación de columna "characteristic".</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Sesgo de mayoría (buen clima) enmascarando eventos críticos.</strong></td>
+                            <td>Aislamiento de tiempo pasivo y filtrado por picos de Tráfico Alto.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Navegadores cargando JSONs obsoletos por caché de CDN.</strong></td>
+                            <td>Sistema de Cache-Busting mediante parámetros de versión ficticios (<code>?v=15</code>).</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Bloqueo del renderizado por procesamiento masivo en frontend.</strong></td>
+                            <td>Adopción de Pre-agregación ETL en backend para renderizado a 60fps.</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h4>Recomendaciones Estratégicas</h4>
+                <ol class="report-list">
+                    <li><strong>Optimización por Vecindad:</strong> Emular el modelo de General Electric (GE) para parques eólicos, donde los aeropuertos podrían ajustar sus rutas y flujos basándose en parámetros de aeródromos cercanos con condiciones de operación más eficientes.</li>
+                    <li><strong>Análisis a Tiempo Real para Reducción de Pérdidas:</strong> Implementar centros de análisis similares al Data Café de Walmart, reduciendo los tiempos de respuesta ante anomalías meteorológicas de semanas a minutos.</li>
+                    <li><strong>Visualización Narrativa:</strong> La dirección estratégica debe priorizar la transformación de datos METAR en "historias visuales" (infografías) que reduzcan la fatiga de análisis y permitan a los controladores tomar decisiones informadas bajo presión.</li>
+                </ol>
+            </section>
+        </article>
+    </main>
+
+    <footer>
+        <p>AeroMet Insights &copy; 2026. Todos los derechos reservados.</p>
+    </footer>
+
+    <!-- Cargamos la lógica de renderizado del dashboard -->
+    <script src="app.js?v=15"></script>
+</body>
+
+</html>
