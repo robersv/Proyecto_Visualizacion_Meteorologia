@@ -115,8 +115,9 @@ def generate_json_payloads(df):
     vis_traffic['date'] = vis_traffic['date'].astype(str)
     vis_traffic.to_json(os.path.join(OUTPUT_DIR, "visibility_vs_traffic.json"), orient="records")
     
-    # 6. Cloud Amounts
-    cloud_amounts = df.groupby(['airport', 'month_name', 'hour', 'amount'], observed=True).agg({'duration_hours': 'sum'}).reset_index()
+    # 6. Cloud Amounts (Real duration without overlapping layers)
+    cloudy_df = df[df['amount'].isin(['FEW', 'SCT', 'BKN', 'OVC'])].drop_duplicates(subset=['airport', 'dateTime'])
+    cloud_amounts = cloudy_df.groupby(['airport', 'month_name', 'hour'], observed=True).agg({'duration_hours': 'sum'}).reset_index()
     cloud_amounts.rename(columns={'duration_hours': 'count'}, inplace=True)
     cloud_amounts['count'] = cloud_amounts['count'].round(1)
     cloud_amounts.to_json(os.path.join(OUTPUT_DIR, "cloud_amounts.json"), orient="records")

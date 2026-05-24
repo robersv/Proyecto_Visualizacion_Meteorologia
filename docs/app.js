@@ -1,7 +1,9 @@
 const THEME = {
-    bg_main: '#0B132B', bg_card: '#1C2541', text_primary: '#FFFFFF', text_secondary: '#979DAC',
-    grid_color: 'rgba(255, 255, 255, 0.08)', colors: { ALTA: '#D62828', MEDIA: '#F7B801', BAJA: '#06D6A0' }
+    bg_main: '#0f172a', bg_card: '#1e293b', text_primary: '#f8fafc', text_secondary: '#94a3b8',
+    grid_color: 'rgba(255, 255, 255, 0.08)', colors: { ALTA: '#ef4444', MEDIA: '#f59e0b', BAJA: '#10b981' }
 };
+
+const DATA_VERSION = '13';
 
 const layoutBase = {
     plot_bgcolor: THEME.bg_card, paper_bgcolor: THEME.bg_card,
@@ -14,11 +16,10 @@ const layoutBase = {
 
 const MONTH_NAMES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
-async function loadData(filename) {
-    const res = await fetch(`data/${filename}`);
+const loadData = (filename) => fetch(`data/${filename}?v=${DATA_VERSION}`).then(res => {
     if (!res.ok) throw new Error(`Could not load ${filename}`);
-    return await res.json();
-}
+    return res.json();
+});
 
 function populateSelect(selectId, options, includeAll = true) {
     const select = document.getElementById(selectId);
@@ -47,7 +48,7 @@ async function initDashboard() {
             loadData('wind_gusts.json'), loadData('3d_scatter_data.json'),
             loadData('climatological_summary.json'), loadData('hourly_temperature.json'), loadData('wind_direction_freq.json'),
             loadData('cloud_base_3d.json'), loadData('visibility_3d.json'), loadData('rvr_sim_3d.json'),
-            loadData('temp_intervals_freq.json'), fetch('data/phenomena_macro_freq.json?v=8').then(r => r.json())
+            loadData('temp_intervals_freq.json'), loadData('phenomena_macro_freq.json')
         ]);
 
         const airports = [...new Set(phenData.map(d => d.airport))].sort();
@@ -331,7 +332,7 @@ function setupCloudAmounts(data) {
             return {
                 x: hours.map(h => h + 'h'),
                 y: hours.map(h => {
-                    const sum = sub.filter(x => x.hour === h && x.amount !== 'Despejado/CAVOK').reduce((s, r) => s + Number(r.count), 0);
+                    const sum = sub.filter(x => x.hour === h).reduce((s, r) => s + Number(r.count), 0);
                     return Math.min((sum / daysInMonth) * 100, 100);
                 }),
                 type: 'bar', name: month
