@@ -44,7 +44,7 @@ async function initDashboard() {
             climateData, hourlyTempData, windDirData, cloud3dData, vis3dData, rvr3dData, tempStackData, macroPhenData
         ] = await Promise.all([
             loadData('phenomena_distribution.json'), loadData('wind_rose.json'), loadData('visibility_vs_traffic.json'),
-            loadData('cloud_amounts.json'), loadData('monthly_evolution.json'), loadData('radar_bad_conditions.json'),
+            loadData('cloud_heights.json'), loadData('monthly_evolution.json'), loadData('radar_bad_conditions.json'),
             loadData('wind_gusts.json'), loadData('3d_scatter_data.json'),
             loadData('climatological_summary.json'), loadData('hourly_temperature.json'), loadData('wind_direction_freq.json'),
             loadData('cloud_base_3d.json'), loadData('visibility_3d.json'), loadData('rvr_sim_3d.json'),
@@ -74,6 +74,9 @@ async function initDashboard() {
         populateSelect('clouds-months', MONTH_NAMES, false);
         populateSelect('macro-phen-airport', airports, false);
 
+        const altitudeBins = ['≤ 200 ft', '300 - 500 ft', '600 - 1000 ft', '1100 - 3000 ft', '> 3000 ft'];
+        populateSelect('clouds-altitude', altitudeBins, false);
+
         // Pre-select some multiselects (First option by default to avoid empty charts)
         const multiIds = [
             'phenomena-airport', 'wind-rose-airport', 'clouds-airport', 'evo-airport', 'macro-phen-airport',
@@ -84,13 +87,17 @@ async function initDashboard() {
             if(el && el.options.length > 0) el.options[0].selected = true;
         });
 
+        // Pre-select all altitude bins by default
+        const elAlt = document.getElementById('clouds-altitude');
+        if (elAlt && elAlt.options.length > 0) Array.from(elAlt.options).forEach(o => o.selected = true);
+
         // Init Graphs
         plotPhenomenaDist(phenData);
         setupWindRose(windRoseData);
         setupWindGusts(gustsData);
         setupVisHeatmap(visData);
         setupVisProfile(visData);
-        setupCloudAmounts(cloudData);
+        setupCloudHeights(cloudData);
         setupMonthlyEvo(monthlyData);
         setupScatter3D(scatter3dData);
         setupRadarCond(radarData);
@@ -306,41 +313,73 @@ function setupVisProfile(data) {
     render();
 }
 
-// 5. Cloud Amounts
+// 5. Cloud Heights
 /**
- * Renderiza la Evolución de Cobertura Nubosa (Gráfica 5).
- * Muestra barras con la cantidad de horas en las que se reportó nubosidad significativa.
- * Soporta selección múltiple de aeropuertos para superposición.
- * @param {Array} data - JSON de agregación de nubosidad por mes y hora
+ * Renderiza el Riesgo Operativo por Altitud de Nubosidad (Gráfica 5).
+ * Muestra horas absolutas apiladas por rango de altitud con gradiente térmico de riesgo.
+ * El rango de ≤ 200 ft (LVP) permanece fijo obligatoriamente.
+ * @param {Array} data - JSON de alturas de nubes
  */
-function setupCloudAmounts(data) {
+function setupCloudHeights(data) {
     const selApt = document.getElementById('clouds-airport');
     const selMonths = document.getElementById('clouds-months');
+    const selAlt = document.getElementById('clouds-altitude');
+    
     const render = () => {
         let d = data;
         const selectedApts = Array.from(selApt.selectedOptions).map(opt => opt.value);
         if (selectedApts.length > 0) d = d.filter(x => selectedApts.includes(x.airport));
+        
         const selectedMonths = Array.from(selMonths.selectedOptions).map(opt => opt.value);
-        const daysPerMonth = {
-            'Enero': 31, 'Febrero': 28, 'Marzo': 31, 'Abril': 30, 'Mayo': 31, 'Junio': 30,
-            'Julio': 31, 'Agosto': 31, 'Septiembre': 30, 'Octubre': 31, 'Noviembre': 30, 'Diciembre': 31
+        if (selectedMonths.length > 0) d = d.filter(x => selectedMonths.includes(x.month_name));
+        
+        const selectedAlts = Array.from(selAlt.selectedOptions).map(opt => opt.value);
+        if (selectedAlts.length > 0) d = d.filter(x => selectedAlts.includes(x.height_bin));
+
+        const hours = [...Array(24).keys()];
+        const colorMap = {
+            '≤ 200 ft': '#dc2626',      // Rojo (Crítico LVP)
+            '300 - 500 ft': '#ea580c',    // Naranja
+            '600 - 1000 ft': '#eab308',   // Amarillo
+            '1100 - 3000 ft': '#0ea5e9',  // Celeste
+            '> 3000 ft': '#1e3a8a'        // Azul oscuro
         };
-        const traces = selectedMonths.map(month => {
-            const sub = d.filter(x => x.month_name === month);
-            const hours = [...Array(24).keys()];
-            const daysInMonth = daysPerMonth[month] || 30;
+
+        const traces = selectedAlts.map(bin => {
+            const sub = d.filter(x => x.height_bin === bin);
             return {
                 x: hours.map(h => h + 'h'),
-                y: hours.map(h => {
-                    const sum = sub.filter(x => x.hour === h).reduce((s, r) => s + Number(r.count), 0);
-                    return Math.min((sum / daysInMonth) * 100, 100);
-                }),
-                type: 'bar', name: month
+                y: hours.map(h => sub.filter(x => x.hour === h).reduce((s, r) => s + Number(r.count), 0)),
+                type: 'bar', 
+                name: bin,
+                marker: { color: colorMap[bin] }
             };
         });
-        Plotly.newPlot('cloud-amounts', traces, { ...layoutBase, barmode: 'group', xaxis: { ...layoutBase.xaxis, title: 'Hora del Día' }, yaxis: { ...layoutBase.yaxis, title: '% Cobertura Nubosa', type: 'linear' } }, {responsive: true});
+        
+        Plotly.newPlot('cloud-heights', traces, { 
+            ...layoutBase, 
+            barmode: 'stack', 
+            xaxis: { ...layoutBase.xaxis, title: 'Hora del Día' }, 
+            yaxis: { ...layoutBase.yaxis, title: 'Horas Absolutas (Apiladas)', type: 'linear' } 
+        }, {responsive: true});
     };
-    selApt.addEventListener('change', render); selMonths.addEventListener('change', render); render();
+
+    if(selApt) selApt.addEventListener('change', render); 
+    if(selMonths) selMonths.addEventListener('change', render); 
+    if(selAlt) {
+        selAlt.addEventListener('change', () => {
+            // Forzar selección perpetua de ≤ 200 ft
+            let fixedOptionFound = false;
+            Array.from(selAlt.options).forEach(opt => {
+                if(opt.value === '≤ 200 ft') {
+                    opt.selected = true;
+                    fixedOptionFound = true;
+                }
+            });
+            if (fixedOptionFound) render();
+        });
+    }
+    render();
 }
 
 // 6. Monthly Evo (Continuous Line by Airport)

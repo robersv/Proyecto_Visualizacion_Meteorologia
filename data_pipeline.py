@@ -115,12 +115,19 @@ def generate_json_payloads(df):
     vis_traffic['date'] = vis_traffic['date'].astype(str)
     vis_traffic.to_json(os.path.join(OUTPUT_DIR, "visibility_vs_traffic.json"), orient="records")
     
-    # 6. Cloud Amounts (Real duration without overlapping layers)
-    cloudy_df = df[df['amount'].isin(['FEW', 'SCT', 'BKN', 'OVC'])].drop_duplicates(subset=['airport', 'dateTime'])
-    cloud_amounts = cloudy_df.groupby(['airport', 'month_name', 'hour'], observed=True).agg({'duration_hours': 'sum'}).reset_index()
-    cloud_amounts.rename(columns={'duration_hours': 'count'}, inplace=True)
-    cloud_amounts['count'] = cloud_amounts['count'].round(1)
-    cloud_amounts.to_json(os.path.join(OUTPUT_DIR, "cloud_amounts.json"), orient="records")
+    # 6. Cloud Heights (Redesign to focus on cloud base altitude)
+    cloudy_df = df[df['amount'].isin(['FEW', 'SCT', 'BKN', 'OVC']) & df['height'].notna()].copy()
+    bins = [-1, 2.0, 5.0, 10.0, 30.0, float('inf')]
+    labels = ['≤ 200 ft', '300 - 500 ft', '600 - 1000 ft', '1100 - 3000 ft', '> 3000 ft']
+    cloudy_df['height_bin'] = pd.cut(cloudy_df['height'], bins=bins, labels=labels)
+    
+    # Drop duplicates for the same METAR and the same altitude bin to avoid double counting same-bin layers
+    cloudy_df = cloudy_df.drop_duplicates(subset=['airport', 'dateTime', 'height_bin'])
+    
+    cloud_heights = cloudy_df.groupby(['airport', 'month_name', 'hour', 'height_bin'], observed=True).agg({'duration_hours': 'sum'}).reset_index()
+    cloud_heights.rename(columns={'duration_hours': 'count'}, inplace=True)
+    cloud_heights['count'] = cloud_heights['count'].round(1)
+    cloud_heights.to_json(os.path.join(OUTPUT_DIR, "cloud_heights.json"), orient="records")
     
     # 7. Monthly Evolution
     monthly_evo = df.groupby(['airport', 'date', 'hour'], observed=True).agg({
